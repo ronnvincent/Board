@@ -86,6 +86,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const extractError = (err: any): string => {
+    if (!err) return "Unknown error occurred.";
+    if (typeof err === 'string') return err;
+    if (err.message) return err.message;
+    if (err.error_description) return err.error_description;
+    if (err.msg) return err.msg;
+    
+    // Safely stringify Error objects
+    try {
+      const str = JSON.stringify(err, Object.getOwnPropertyNames(err));
+      if (str === "{}" || !str) return String(err);
+      return str;
+    } catch {
+      return String(err);
+    }
+  };
+
   const signIn = useCallback(
     async (email: string, password: string): Promise<{ error?: string }> => {
       try {
@@ -96,12 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error("Supabase signIn error:", error);
-          return { error: error.message || JSON.stringify(error) };
+          return { error: extractError(error) };
         }
         return {};
       } catch (err: any) {
         console.error("signIn catch error:", err);
-        return { error: err?.message || JSON.stringify(err) || "An unexpected error occurred." };
+        return { error: extractError(err) };
       }
     },
     []
@@ -126,12 +143,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error("Supabase signUp error:", error);
-          return { error: error.message || JSON.stringify(error) };
+          return { error: extractError(error) };
         }
         return {};
       } catch (err: any) {
         console.error("signUp catch error:", err);
-        return { error: err?.message || JSON.stringify(err) || "An unexpected error occurred." };
+        return { error: extractError(err) };
       }
     },
     []
