@@ -24,9 +24,15 @@ export default function SignupForm({ onGoHome, onGoToLogin }: SignupFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
+    const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
+
+    // Detect missing Vercel environment variables immediately
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      setError("CONFIGURATION ERROR: You need to add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel Project Settings -> Environment Variables, then redeploy.");
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");

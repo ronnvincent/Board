@@ -26,8 +26,14 @@ export default function LoginForm({ onGoHome, onGoToSignup }: LoginFormProps) {
   const handleSignIn = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    setLoading(true);
 
+    // Detect missing Vercel environment variables immediately
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      setError("CONFIGURATION ERROR: You need to add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel Project Settings -> Environment Variables, then redeploy.");
+      return;
+    }
+
+    setLoading(true);
     const result = await signIn(email, password);
     setLoading(false);
 

@@ -88,15 +88,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<{ error?: string }> => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      try {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) {
-        return { error: error.message };
+        if (error) {
+          console.error("Supabase signIn error:", error);
+          return { error: error.message || JSON.stringify(error) };
+        }
+        return {};
+      } catch (err: any) {
+        console.error("signIn catch error:", err);
+        return { error: err?.message || JSON.stringify(err) || "An unexpected error occurred." };
       }
-      return {};
     },
     []
   );
@@ -107,20 +113,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password: string,
       fullName: string
     ): Promise<{ error?: string }> => {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
+      try {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            },
           },
-        },
-      });
+        });
 
-      if (error) {
-        return { error: error.message };
+        if (error) {
+          console.error("Supabase signUp error:", error);
+          return { error: error.message || JSON.stringify(error) };
+        }
+        return {};
+      } catch (err: any) {
+        console.error("signUp catch error:", err);
+        return { error: err?.message || JSON.stringify(err) || "An unexpected error occurred." };
       }
-      return {};
     },
     []
   );
