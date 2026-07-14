@@ -7,105 +7,96 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthContextType, User, UserRole } from "../types/auth";
+import { supabase, type Profile } from "../../lib/supabase";
 
-// ─── Seeded Accounts (fixed credentials) ───────────────
-const SEEDED_ACCOUNTS: { email: string; password: string; user: User }[] = [
-  {
-    email: "superadmin",
-    password: "superadmin123",
-    user: {
-      id: "sa-001",
-      email: "superadmin",
-      fullName: "Super Administrator",
-      role: "administrator",
-      createdAt: "2025-01-01T00:00:00Z",
-    },
-  },
-  {
-    email: "admin",
-    password: "admin123",
-    user: {
-      id: "adm-001",
-      email: "admin",
-      fullName: "House Manager",
-      role: "admin",
-      boardingHouseId: "bh-001",
-      createdAt: "2025-01-15T00:00:00Z",
-    },
-  },
-];
-
-// ─── Storage Keys ──────────────────────────────────────
-const STORAGE_KEY = "boardinghow_session";
-const USERS_KEY = "boardinghow_users";
-
-// ─── Helpers ───────────────────────────────────────────
-function generateId(): string {
-  return `usr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function getStoredUsers(): { email: string; password: string; user: User }[] {
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function storeUser(email: string, password: string, user: User) {
-  const users = getStoredUsers();
-  users.push({ email, password, user });
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-// ─── Context ───────────────────────────────────────────
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restore session on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as User;
-        setUser(parsed);
-      }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
+  // Fetch the full profile (including role) for a given auth user
+  const fetchAndSetUserProfile = async (authUser: any) => {
+    if (!authUser) {
+      setUser(null);
+      return;
     }
-    setIsLoading(false);
+
+    try {
+      // Query the profiles table we created in Supabase
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching profile:", error);
+        setUser(null);
+        return;
+      }
+
+      const profile = data as Profile;
+
+      setUser({
+        id: profile.id,
+        email: authUser.email,
+        fullName: profile.full_name,
+        role: profile.role,
+        createdAt: profile.created_at,
+      });
+    } catch (err) {
+      console.error("Error in fetchAndSetUserProfile:", err);
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) {
+        if (session?.user) {
+          fetchAndSetUserProfile(session.user).finally(() => setIsLoading(false));
+        } else {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    // Listen for auth changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) return;
+        
+        if (session?.user) {
+          setIsLoading(true);
+          fetchAndSetUserProfile(session.user).finally(() => setIsLoading(false));
+        } else {
+          setUser(null);
+          setIsLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<{ error?: string }> => {
-      // Simulate network delay
-      await new Promise((r) => setTimeout(r, 800));
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      // Check seeded accounts first
-      const seeded = SEEDED_ACCOUNTS.find(
-        (a) => a.email === email && a.password === password
-      );
-      if (seeded) {
-        setUser(seeded.user);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded.user));
-        return {};
+      if (error) {
+        return { error: error.message };
       }
-
-      // Check registered users
-      const stored = getStoredUsers().find(
-        (a) => a.email === email && a.password === password
-      );
-      if (stored) {
-        setUser(stored.user);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored.user));
-        return {};
-      }
-
-      return { error: "Invalid email or password. Please try again." };
+      return {};
     },
     []
   );
@@ -116,39 +107,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password: string,
       fullName: string
     ): Promise<{ error?: string }> => {
-      // Simulate network delay
-      await new Promise((r) => setTimeout(r, 800));
-
-      // Check if email already taken (seeded + stored)
-      const allEmails = [
-        ...SEEDED_ACCOUNTS.map((a) => a.email),
-        ...getStoredUsers().map((a) => a.email),
-      ];
-      if (allEmails.includes(email)) {
-        return { error: "An account with this email already exists." };
-      }
-
-      // Always create as "user" role — no role selection
-      const newUser: User = {
-        id: generateId(),
+      const { error } = await supabase.auth.signUp({
         email,
-        fullName,
-        role: "user" as UserRole,
-        createdAt: new Date().toISOString(),
-      };
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
 
-      storeUser(email, password, newUser);
-      setUser(newUser);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
-
+      if (error) {
+        return { error: error.message };
+      }
       return {};
     },
     []
   );
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   return (
@@ -167,7 +146,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// ─── Hook ──────────────────────────────────────────────
 export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
   if (!ctx) {
