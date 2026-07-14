@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import type { UserRole } from "../app/types/auth";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
+const supabaseKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || "placeholder-key";
 
 if (!supabaseUrl || !supabaseKey) {
   console.error(
