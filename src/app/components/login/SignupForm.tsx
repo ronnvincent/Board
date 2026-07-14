@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, LockKeyhole, Loader2, Mail, UserRound } from "lucide-react";
 import AnimatedInput from "./AnimatedInput";
 import { useAuth } from "../../context/AuthContext";
+import GuestModal from "./GuestModal";
 
 interface SignupFormProps {
   onGoHome: () => void;
@@ -23,6 +24,7 @@ export default function SignupForm({ onGoHome, onGoToLogin }: SignupFormProps) {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [showGuestModal, setShowGuestModal] = useState(false);
 
     const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -274,7 +276,25 @@ export default function SignupForm({ onGoHome, onGoToLogin }: SignupFormProps) {
             Sign in
           </button>
         </motion.p>
+
+        {/* Guest Mode Divider & Button */}
+        <motion.div variants={staggerItem} className="mt-8 flex flex-col items-center">
+          <div className="flex w-full items-center gap-4 text-sm text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            <span>or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowGuestModal(true)}
+            className="mt-6 rounded-xl border border-border bg-card px-6 py-2.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-muted"
+          >
+            Continue as Guest
+          </button>
+        </motion.div>
       </motion.div>
+
+      <GuestModal isOpen={showGuestModal} onClose={() => setShowGuestModal(false)} />
 
       {/* Mobile footer */}
       <p className="text-center text-xs text-muted-foreground lg:hidden">
