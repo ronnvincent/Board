@@ -12,7 +12,10 @@ import {
   User,
   ChevronRight,
   MoreHorizontal,
+  Edit2,
+  Trash2,
 } from "lucide-react";
+import { useEffect } from "react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
 import RoleBadge from "../components/dashboard/RoleBadge";
@@ -52,21 +55,24 @@ export default function AdministratorDashboard() {
 function OverviewSection() {
   const { data: houses } = useRealtimeData("houses", "created_at", true);
   const { data: admins } = useRealtimeData("admins");
+  const { data: profiles } = useRealtimeData("profiles");
+  const { data: rooms } = useRealtimeData("rooms");
 
-  // Calculate totals across all houses
   const totalHouses = houses.length;
   const totalAdmins = admins.length;
+  const totalUsers = profiles.length;
   
-  // We don't have "users" or "revenue" tables yet, so we will show 0 for now.
-  // In a real production system, these would aggregate from tenants and payments tables.
+  const monthlyRevenue = rooms
+    .filter((r: any) => r.status === "occupied")
+    .reduce((sum: number, room: any) => sum + (room.price || 0), 0);
 
   return (
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Total Houses" value={totalHouses} icon={<Building2 size={19} />} trend="neutral" trendText="Live from DB" index={0} />
         <StatCard title="Total Admins" value={totalAdmins} icon={<Shield size={19} />} colorClass="bg-[#f2e3c1] text-[#8c6b37]" index={1} />
-        <StatCard title="Total Users" value={0} subtitle="residents" icon={<Users size={19} />} trend="neutral" colorClass="bg-[#dbeafe] text-[#2563eb]" index={2} />
-        <StatCard title="Monthly Revenue" value="₱0" icon={<Home size={19} />} trend="neutral" colorClass="bg-[#e6efe8] text-primary" index={3} />
+        <StatCard title="Total Users" value={totalUsers} subtitle="registered accounts" icon={<Users size={19} />} trend="neutral" colorClass="bg-[#dbeafe] text-[#2563eb]" index={2} />
+        <StatCard title="Monthly Revenue" value={`₱${monthlyRevenue.toLocaleString()}`} icon={<Home size={19} />} trend="neutral" colorClass="bg-[#e6efe8] text-primary" index={3} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -90,8 +96,12 @@ function OverviewSection() {
           ) : (
             <div className="divide-y divide-border">
               {houses.map((house) => {
-                // Find admin assigned to this house
                 const assignedAdmin = admins.find(a => a.house_id === house.id);
+                const houseRooms = rooms.filter((r: any) => r.house_id === house.id);
+                const occupiedCount = houseRooms.filter((r: any) => r.status === "occupied").length;
+                const capacity = house.rooms || 0;
+                const occupancyPercent = capacity > 0 ? Math.round((occupiedCount / capacity) * 100) : 0;
+
                 return (
                   <div key={house.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition">
                     <div className="flex items-center gap-3">
@@ -105,8 +115,8 @@ function OverviewSection() {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="text-sm font-bold">0<span className="text-muted-foreground font-normal">/{house.rooms}</span></p>
-                        <p className="text-[10px] text-muted-foreground font-['DM_Mono'] uppercase">0% collected</p>
+                        <p className="text-sm font-bold">{occupiedCount}<span className="text-muted-foreground font-normal">/{capacity}</span></p>
+                        <p className="text-[10px] text-muted-foreground font-['DM_Mono'] uppercase">{occupancyPercent}% occupied</p>
                       </div>
                       <ChevronRight size={15} className="text-muted-foreground" />
                     </div>
@@ -141,18 +151,23 @@ function OverviewSection() {
 function AdminsSection() {
   const { data: admins, loading: loadingAdmins } = useRealtimeData("admins", "name", true);
   const { data: houses } = useRealtimeData("houses", "name", true);
-  const [adding, setAdding] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [adminToEdit, setAdminToEdit] = useState<any>(null);
 
-  const handleAddAdmin = async () => {
-    setAdding(true);
-    const adminName = prompt("Enter new Admin's full name:");
-    if (adminName) {
-      const email = prompt("Enter admin email:");
-      if (email) {
-        await supabase.from("admins").insert({ name: adminName, email, status: "active" });
-      }
+  const handleCreate = () => {
+    setAdminToEdit(null);
+    setModalOpen(true);
+  };
+
+  const handleEdit = (admin: any) => {
+    setAdminToEdit(admin);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to revoke this admin's access? This will permanently delete their account.")) {
+      await supabase.from("admins").delete().eq("id", id);
     }
-    setAdding(false);
   };
 
   return (
@@ -160,9 +175,8 @@ function AdminsSection() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Manage admin accounts and their assigned boarding houses.</p>
         <button 
-          onClick={handleAddAdmin}
-          disabled={adding}
-          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
+          onClick={handleCreate}
+          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition"
         >
           <UserPlus size={15} /> Add Admin
         </button>
@@ -196,7 +210,14 @@ function AdminsSection() {
                     <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 capitalize">{admin.status}</span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <button className="text-muted-foreground hover:text-foreground"><MoreHorizontal size={16} /></button>
+                    <div className="flex items-center gap-2 justify-end">
+                      <button onClick={() => handleEdit(admin)} className="p-1.5 text-muted-foreground hover:bg-muted rounded-lg transition" title="Edit Admin">
+                        <Edit2 size={15} />
+                      </button>
+                      <button onClick={() => handleDelete(admin.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition" title="Revoke Access">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -204,6 +225,83 @@ function AdminsSection() {
           </table>
         </div>
       )}
+
+      <AdminModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        admin={adminToEdit} 
+        houses={houses} 
+      />
+    </div>
+  );
+}
+
+function AdminModal({ isOpen, onClose, admin, houses }: { isOpen: boolean, onClose: () => void, admin: any, houses: any[] }) {
+  const [name, setName] = useState(admin?.name || "");
+  const [email, setEmail] = useState(admin?.email || "");
+  const [houseId, setHouseId] = useState(admin?.house_id || "unassigned");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setName(admin?.name || "");
+    setEmail(admin?.email || "");
+    setHouseId(admin?.house_id || "unassigned");
+  }, [admin, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    const payload = {
+      name,
+      email,
+      house_id: houseId === "unassigned" ? null : houseId,
+      status: "active"
+    };
+
+    if (admin) {
+      await supabase.from("admins").update(payload).eq("id", admin.id);
+    } else {
+      await supabase.from("admins").insert(payload);
+    }
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
+      >
+        <h3 className="font-bold text-lg mb-4">{admin ? "Edit Admin" : "Create Admin"}</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-muted-foreground">Full Name</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-muted-foreground">Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-muted-foreground">Assigned House</label>
+            <select value={houseId} onChange={(e) => setHouseId(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
+              <option value="unassigned">None (Unassigned)</option>
+              {houses.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-bold text-muted-foreground hover:bg-muted transition">Cancel</button>
+          <button onClick={handleSave} disabled={saving || !name || !email} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50">
+            {saving ? "Saving..." : "Save Admin"}
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -211,19 +309,23 @@ function AdminsSection() {
 function HousesSection() {
   const { data: houses, loading: loadingHouses } = useRealtimeData("houses", "created_at", false);
   const { data: admins } = useRealtimeData("admins");
-  const [adding, setAdding] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [houseToEdit, setHouseToEdit] = useState<any>(null);
 
-  const handleAddHouse = async () => {
-    setAdding(true);
-    const houseName = prompt("Enter the name of the new boarding house:");
-    if (houseName) {
-      const roomCapacity = prompt("How many total rooms does it have?");
-      await supabase.from("houses").insert({ 
-        name: houseName, 
-        rooms: parseInt(roomCapacity || "0", 10) 
-      });
+  const handleCreate = () => {
+    setHouseToEdit(null);
+    setModalOpen(true);
+  };
+
+  const handleEdit = (house: any) => {
+    setHouseToEdit(house);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this property? This cannot be undone.")) {
+      await supabase.from("houses").delete().eq("id", id);
     }
-    setAdding(false);
   };
 
   return (
@@ -231,9 +333,8 @@ function HousesSection() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">All registered boarding houses across the platform.</p>
         <button 
-          onClick={handleAddHouse}
-          disabled={adding}
-          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
+          onClick={handleCreate}
+          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition"
         >
           <Building2 size={15} /> Add House
         </button>
@@ -261,9 +362,17 @@ function HousesSection() {
                   <div className="grid size-10 place-items-center rounded-xl bg-primary text-[#e6b65c]">
                     <Building2 size={18} />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-bold">{house.name}</p>
                     <p className="text-xs text-muted-foreground">{assignedAdmin ? assignedAdmin.name : "Unassigned Admin"}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleEdit(house)} className="p-1.5 text-muted-foreground hover:bg-muted rounded-lg transition" title="Edit Property">
+                      <Edit2 size={14} />
+                    </button>
+                    <button onClick={() => handleDelete(house.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition" title="Delete Property">
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -285,6 +394,71 @@ function HousesSection() {
           })}
         </div>
       )}
+
+      <HouseModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        house={houseToEdit} 
+      />
+    </div>
+  );
+}
+
+function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () => void, house: any }) {
+  const [name, setName] = useState(house?.name || "");
+  const [rooms, setRooms] = useState(house?.rooms?.toString() || "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setName(house?.name || "");
+    setRooms(house?.rooms?.toString() || "");
+  }, [house, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    const payload = {
+      name,
+      rooms: parseInt(rooms || "0", 10),
+    };
+
+    if (house) {
+      await supabase.from("houses").update(payload).eq("id", house.id);
+    } else {
+      await supabase.from("houses").insert(payload);
+    }
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
+      >
+        <h3 className="font-bold text-lg mb-4">{house ? "Edit Boarding House" : "Create Boarding House"}</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-muted-foreground">Property Name</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-muted-foreground">Total Room Capacity</label>
+            <input type="number" min="0" value={rooms} onChange={(e) => setRooms(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-bold text-muted-foreground hover:bg-muted transition">Cancel</button>
+          <button onClick={handleSave} disabled={saving || !name || !rooms} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50">
+            {saving ? "Saving..." : "Save Property"}
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -302,6 +476,16 @@ function ActivitySection() {
 
 function UsersSection() {
   const { data: profiles, loading } = useRealtimeData("profiles", "created_at", true);
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (confirm("Are you sure you want to permanently delete this user?")) {
+      await supabase.from("profiles").delete().eq("id", userId);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -340,20 +524,26 @@ function UsersSection() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`capitalize text-xs font-semibold px-2.5 py-1 rounded-full ${
-                        profile.role === 'administrator' ? 'bg-amber-100 text-amber-700' :
-                        profile.role === 'admin' ? 'bg-blue-100 text-blue-700' :
-                        'bg-emerald-100 text-emerald-700'
-                      }`}>
-                        {profile.role}
-                      </span>
+                      <select 
+                        value={profile.role}
+                        onChange={(e) => handleRoleChange(profile.id, e.target.value)}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-full outline-none border border-transparent hover:border-border cursor-pointer appearance-none text-center ${
+                          profile.role === 'administrator' ? 'bg-amber-100 text-amber-700' :
+                          profile.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                          'bg-emerald-100 text-emerald-700'
+                        }`}
+                      >
+                        <option value="resident">Resident</option>
+                        <option value="admin">Admin</option>
+                        <option value="administrator">Administrator</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">
                       {new Date(profile.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-muted-foreground hover:text-foreground">
-                        <MoreHorizontal size={18} />
+                      <button onClick={() => handleDeleteUser(profile.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition" title="Delete User">
+                        <Trash2 size={16} />
                       </button>
                     </td>
                   </tr>
