@@ -63,6 +63,7 @@ export default function HomePage({ onGoToLogin }: HomePageProps) {
           <div className="grid gap-1">
             <a href="#how" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium">How it works</a>
             <a href="#why" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium">Why BoardingHow</a>
+            <a href="#stories" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium">Stories</a>
             <button onClick={onGoToLogin} className="mt-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground">Log in to BoardingHow</button>
           </div>
         </div>
@@ -75,7 +76,7 @@ export default function HomePage({ onGoToLogin }: HomePageProps) {
           <p className="mt-7 max-w-[490px] text-[17px] leading-7 text-muted-foreground">BoardingHow brings the moving pieces of shared living into one beautifully simple place. More care, less clutter.</p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <button onClick={onGoToLogin} className="group flex items-center justify-center gap-3 rounded-full bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-[0_10px_20px_rgba(31,81,73,.18)] transition hover:-translate-y-0.5">Enter BoardingHow <span className="grid size-5 place-items-center rounded-full bg-[#e6b65c] text-primary transition group-hover:translate-x-0.5"><ArrowRight size={13} strokeWidth={3} /></span></button>
-            <button className="flex items-center justify-center gap-2 rounded-full border border-border bg-[#fbf8f1]/70 px-6 py-3.5 text-sm font-bold text-primary transition hover:border-primary"><CircleHelp size={17} /> See how it works</button>
+            <a href="#how" className="flex items-center justify-center gap-2 rounded-full border border-border bg-[#fbf8f1]/70 px-6 py-3.5 text-sm font-bold text-primary transition hover:border-primary"><CircleHelp size={17} /> See how it works</a>
           </div>
           <div className="mt-11 flex items-center gap-5">
             <div className="flex -space-x-2">
@@ -159,9 +160,9 @@ export default function HomePage({ onGoToLogin }: HomePageProps) {
             <Quote size={32} className="mb-4 text-[#d9cbb4]" />
             <p className="mb-6 text-lg leading-relaxed text-foreground">"Before BoardingHow, tracking who paid what and when was a nightmare of spreadsheets and text messages. Now, my tenants have their own portal, and I can see my collection rate at a glance. It's completely changed how I manage my property."</p>
             <div className="flex items-center gap-4">
-              <div className="grid size-12 place-items-center rounded-full bg-[#1f5149] text-lg font-bold text-white">MS</div>
+              <div className="grid size-12 place-items-center rounded-full bg-[#1f5149] text-lg font-bold text-white">NS</div>
               <div>
-                <p className="font-bold">Maria Santos</p>
+                <p className="font-bold">Sanchez, Niel Jasper</p>
                 <p className="text-sm text-muted-foreground">House Manager, Sunrise Dorm</p>
               </div>
             </div>
@@ -171,9 +172,9 @@ export default function HomePage({ onGoToLogin }: HomePageProps) {
             <Quote size={32} className="mb-4 text-border" />
             <p className="mb-6 text-lg leading-relaxed text-foreground">"I love having a single place to check my rent balance and submit maintenance requests. The last place I lived at used a group chat for everything, and things always got lost. This feels so much more professional and calm."</p>
             <div className="flex items-center gap-4">
-              <div className="grid size-12 place-items-center rounded-full bg-[#dbeafe] text-lg font-bold text-[#2563eb]">SK</div>
+              <div className="grid size-12 place-items-center rounded-full bg-[#dbeafe] text-lg font-bold text-[#2563eb]">PM</div>
               <div>
-                <p className="font-bold">Sora K.</p>
+                <p className="font-bold">Malic, Paul Zymour</p>
                 <p className="text-sm text-muted-foreground">Resident, Room 04</p>
               </div>
             </div>
