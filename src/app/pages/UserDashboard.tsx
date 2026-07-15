@@ -1026,12 +1026,17 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
         .upload(filePath, file);
 
       if (uploadError) {
-        console.error("Storage upload failed, using local blob");
-        const objectUrl = URL.createObjectURL(file);
-        const newLocalData = { ...localData, avatar_url: objectUrl };
-        localStorage.setItem(localCacheKey, JSON.stringify(newLocalData));
-        setLocalData(newLocalData);
-        setSuccessMsg("Profile picture updated locally!");
+        console.error("Storage upload failed, using local base64");
+        try {
+          const base64DataUrl = await compressImageToBase64(file, 400, 0.7); // Compress aggressively for local storage
+          const newLocalData = { ...localData, avatar_url: base64DataUrl };
+          localStorage.setItem(localCacheKey, JSON.stringify(newLocalData));
+          setLocalData(newLocalData);
+          setSuccessMsg("Profile picture updated locally!");
+        } catch (err) {
+          console.error("Failed to process image locally:", err);
+          alert("Could not save the image locally. Please try a smaller image.");
+        }
         setTimeout(() => setSuccessMsg(""), 3000);
         return;
       }
