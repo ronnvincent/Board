@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Building2,
@@ -30,11 +30,14 @@ import {
   Megaphone,
   Clock,
   Wrench,
-  MessageSquare
+  MessageSquare,
+  Send,
+  ChevronLeft
 } from "lucide-react";
 import { useEffect } from "react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
+import { useAuth } from "../context/AuthContext";
 import RoleBadge from "../components/dashboard/RoleBadge";
 
 const navItems: NavItem[] = [
@@ -47,6 +50,7 @@ const navItems: NavItem[] = [
   { label: "All Houses", icon: <Building2 size={18} />, id: "houses" },
   { label: "All Users", icon: <Users size={18} />, id: "users" },
   { label: "Activity Log", icon: <Activity size={18} />, id: "activity" },
+  { label: "Sumbungan", icon: <MessageSquare size={18} />, id: "sumbungan" },
   { label: "Settings", icon: <Settings size={18} />, id: "settings" },
 ];
 
@@ -97,6 +101,7 @@ export default function AdministratorDashboard() {
       {activeNav === "houses" && <HousesSection />}
       {activeNav === "users" && <UsersSection />}
       {activeNav === "activity" && <ActivitySection />}
+      {activeNav === "sumbungan" && <SumbunganAdminSection />}
       {activeNav === "settings" && <SettingsPlaceholder />}
     </DashboardLayout>
   );
@@ -2171,6 +2176,258 @@ function MaintenanceSection() {
               </motion.div>
             );
           })
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────── SUMBUNGAN CENTER (Administrator Side) ─────────────── */
+
+const CONCERN_CATEGORIES = [
+  { id: "noise", label: "Noise", emoji: "🔊" },
+  { id: "safety", label: "Safety", emoji: "🛡️" },
+  { id: "facility", label: "Facility", emoji: "🏠" },
+  { id: "violation", label: "Violation", emoji: "⚠️" },
+  { id: "other", label: "Other", emoji: "💬" },
+];
+
+function SumbunganAdminSection() {
+  const { user } = useAuth();
+  const { data: messages } = useRealtimeData("messages");
+  const { data: profiles } = useRealtimeData("profiles");
+  const { data: tenants } = useRealtimeData("tenants");
+  const { data: rooms } = useRealtimeData("rooms");
+
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [msgInput, setMsgInput] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Parse message content to extract category
+  const parseMessage = (content: string) => {
+    const match = content.match(/^\[([A-Z]+)\]\s*/);
+    if (match) {
+      return { category: match[1].toLowerCase(), text: content.replace(match[0], "") };
+    }
+    return { category: null, text: content };
+  };
+
+  // Find all unique users who have messaged this administrator
+  const userIds = Array.from(
+    new Set(
+      messages
+        .filter((m: any) => m.receiver_id === user?.id || m.sender_id === user?.id)
+        .map((m: any) => (m.sender_id === user?.id ? m.receiver_id : m.sender_id))
+    )
+  );
+
+  // We only want users who have roles 'user' (not other admins)
+  const concernUsers = profiles.filter((p: any) => p.role === "user" && userIds.includes(p.id));
+
+  // Get conversations for a specific user
+  const getConversation = (userId: string) => {
+    return messages
+      .filter(
+        (m: any) =>
+          (m.sender_id === userId && m.receiver_id === user?.id) ||
+          (m.sender_id === user?.id && m.receiver_id === userId)
+      )
+      .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  };
+
+  // Get last message for preview
+  const getLastMessage = (userId: string) => {
+    const conv = getConversation(userId);
+    return conv.length > 0 ? conv[conv.length - 1] : null;
+  };
+
+  // Sort users by latest message
+  const sortedUsers = [...concernUsers].sort((a: any, b: any) => {
+    const lastA = getLastMessage(a.id);
+    const lastB = getLastMessage(b.id);
+    if (!lastA && !lastB) return 0;
+    if (!lastA) return 1;
+    if (!lastB) return -1;
+    return new Date(lastB.created_at).getTime() - new Date(lastA.created_at).getTime();
+  });
+
+  const handleSend = async () => {
+    if (!msgInput.trim() || !selectedUserId || !user?.id) return;
+    await supabase.from("messages").insert({
+      sender_id: user.id,
+      receiver_id: selectedUserId,
+      content: msgInput.trim(),
+    });
+    setMsgInput("");
+  };
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, selectedUserId]);
+
+  const selectedUserProfile = profiles.find((p: any) => p.id === selectedUserId);
+  const conversation = selectedUserId ? getConversation(selectedUserId) : [];
+  const selectedUserTenant = tenants.find((t: any) => t.profile_id === selectedUserId);
+  const selectedUserRoom = rooms.find((r: any) => r.id === selectedUserTenant?.room_id);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+          <MessageSquare size={20} />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold font-['Libre_Baskerville']">Sumbungan Center Inbox</h2>
+          <p className="text-xs text-muted-foreground">Manage and respond to user concerns and reports</p>
+        </div>
+      </div>
+
+      <div className="flex rounded-2xl border border-border bg-card overflow-hidden" style={{ height: "calc(100vh - 220px)", minHeight: "400px" }}>
+        {/* User list */}
+        <div className="w-72 shrink-0 border-r border-border flex flex-col bg-muted/10">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-[10px] font-['DM_Mono'] uppercase tracking-wider text-muted-foreground">
+              Active Concerns ({sortedUsers.length})
+            </p>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {sortedUsers.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">No active concerns</div>
+            ) : (
+              sortedUsers.map((u: any) => {
+                const lastMsg = getLastMessage(u.id);
+                const lastParsed = lastMsg ? parseMessage(lastMsg.content) : null;
+                const isSelected = selectedUserId === u.id;
+                const unread = messages.filter((m: any) => m.sender_id === u.id && m.receiver_id === user?.id).length;
+                const tenantInfo = tenants.find((t: any) => t.profile_id === u.id);
+                const roomInfo = rooms.find((r: any) => r.id === tenantInfo?.room_id);
+
+                return (
+                  <div
+                    key={u.id}
+                    onClick={() => setSelectedUserId(u.id)}
+                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition border-b border-border/50 ${
+                      isSelected ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/30"
+                    }`}
+                  >
+                    {u.avatar_url ? (
+                      <img src={u.avatar_url} alt="" className="size-10 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary shrink-0">
+                        {u.full_name?.charAt(0) || "?"}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold truncate">{u.full_name}</p>
+                        {unread > 0 && (
+                          <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{unread}</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        {roomInfo ? `Room ${roomInfo.number}` : "Unassigned"}
+                      </p>
+                      {lastParsed && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {lastMsg.sender_id === user?.id ? "You: " : ""}{lastParsed.text}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Chat area */}
+        {selectedUserProfile ? (
+          <div className="flex-1 flex flex-col">
+            {/* Chat header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/10 shrink-0">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setSelectedUserId(null)} className="lg:hidden rounded-lg p-1.5 hover:bg-muted transition">
+                  <ChevronLeft size={18} />
+                </button>
+                {selectedUserProfile.avatar_url ? (
+                  <img src={selectedUserProfile.avatar_url} alt="" className="size-9 rounded-full object-cover" />
+                ) : (
+                  <div className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary">
+                    {selectedUserProfile.full_name?.charAt(0) || "?"}
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-bold">{selectedUserProfile.full_name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {selectedUserRoom ? `Room ${selectedUserRoom.number}` : "Unassigned"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {conversation.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center h-full text-center text-muted-foreground py-12">
+                  <p className="text-sm font-medium">No messages</p>
+                </div>
+              ) : (
+                conversation.map((msg: any) => {
+                  const isMe = msg.sender_id === user?.id;
+                  const parsed = parseMessage(msg.content);
+                  const catInfo = CONCERN_CATEGORIES.find((c) => c.id === parsed.category);
+                  const time = new Date(msg.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                        isMe
+                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          : "bg-muted/60 text-foreground rounded-bl-md"
+                      }`}>
+                        {catInfo && (
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase mb-1 ${
+                            isMe ? "bg-white/20 text-primary-foreground" : "bg-primary/10 text-primary"
+                          }`}>
+                            {catInfo.emoji} {catInfo.label}
+                          </span>
+                        )}
+                        <p className="text-sm">{parsed.text}</p>
+                        <p className={`text-[9px] mt-1 ${isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>{time}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="border-t border-border p-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <input
+                  value={msgInput}
+                  onChange={(e) => setMsgInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
+                  placeholder="Reply to user..."
+                  className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary transition"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!msgInput.trim()}
+                  className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-40"
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+            <MessageSquare size={48} className="mb-4 opacity-10" />
+            <p className="font-medium">Select a conversation</p>
+            <p className="text-xs mt-1">Review and reply to user concerns</p>
+          </div>
         )}
       </div>
     </div>
