@@ -50,6 +50,7 @@ import { supabase } from "../../lib/supabase";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { Scanner } from "@yudiel/react-qr-scanner";
 
 // Fix for default marker icon in react-leaflet
 import iconUrl from "leaflet/dist/images/marker-icon.png";
@@ -1125,6 +1126,7 @@ function SecurityGateSection() {
   const [scanCode, setScanCode] = useState("");
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
 
   const matchedVisitor = visitors.find((v) => v.id === lastScanned);
 
@@ -1132,6 +1134,25 @@ function SecurityGateSection() {
     e.preventDefault();
     setLastScanned(scanCode.trim());
     setScanCode("");
+  };
+
+  const handleCameraScan = (result: any) => {
+    if (!result) return;
+    
+    let scannedText = "";
+    if (Array.isArray(result) && result.length > 0) {
+      scannedText = result[0].rawValue || result[0].text || result[0];
+    } else if (typeof result === 'object' && result.text) {
+      scannedText = result.text;
+    } else if (typeof result === 'string') {
+      scannedText = result;
+    }
+
+    if (scannedText && scannedText !== lastScanned) {
+      setLastScanned(scannedText);
+      // Play a small beep sound if you wanted, but for now just turn off camera
+      setCameraActive(false);
+    }
   };
 
   const handleApprove = async () => {
@@ -1151,30 +1172,52 @@ function SecurityGateSection() {
   return (
     <div className="grid gap-6 lg:grid-cols-2 max-w-5xl">
       <div className="space-y-6">
-        <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Scanner Simulator</h3>
-        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-          <p className="text-sm text-muted-foreground mb-6">
-            Type or paste the Gate Pass ID found on the visitor's QR code.
-          </p>
-          <form onSubmit={handleScan} className="flex flex-col gap-3">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-              <input
-                type="text"
-                placeholder="Enter Gate Pass ID..."
-                value={scanCode}
-                onChange={(e) => setScanCode(e.target.value)}
-                className="w-full rounded-2xl border border-border bg-background py-4 pl-12 pr-4 text-sm font-mono outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
+        <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Scanner</h3>
+        
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm flex flex-col items-center">
+          {cameraActive ? (
+            <div className="w-full max-w-sm aspect-square relative rounded-2xl overflow-hidden bg-black mb-4">
+              <Scanner 
+                onScan={handleCameraScan} 
+                components={{ audio: false, onOff: true, torch: true, zoom: false, finder: true }}
               />
+              <button 
+                onClick={() => setCameraActive(false)}
+                className="absolute top-4 right-4 bg-red-500 text-white rounded-full p-2 z-10"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <button
-              type="submit"
-              disabled={!scanCode.trim()}
-              className="rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
-            >
-              Verify Pass
-            </button>
-          </form>
+          ) : (
+            <div className="w-full max-w-sm aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/20 mb-4 cursor-pointer hover:bg-muted/40 transition" onClick={() => setCameraActive(true)}>
+              <ShieldCheck size={48} className="text-primary/40 mb-4" />
+              <p className="font-bold">Click to start camera</p>
+              <p className="text-xs text-muted-foreground mt-1">Requires camera permission</p>
+            </div>
+          )}
+
+          <div className="w-full max-w-sm">
+            <p className="text-xs text-center text-muted-foreground mb-3 font-bold uppercase tracking-wider">Or verify manually</p>
+            <form onSubmit={handleScan} className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                <input
+                  type="text"
+                  placeholder="Paste ID here..."
+                  value={scanCode}
+                  onChange={(e) => setScanCode(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm font-mono outline-none focus:border-primary transition"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!scanCode.trim()}
+                className="rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
+              >
+                Verify
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
