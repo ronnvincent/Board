@@ -19,9 +19,12 @@ import {
   MessageSquareText,
   BedDouble,
   KeyRound,
+  Edit2,
+  ImagePlus,
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
+import { compressImageToBase64 } from "../../lib/imageUtils";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={18} />, id: "dashboard" },
@@ -279,27 +282,78 @@ function AdmissionsSection() {
 function RoomsSection() {
   const { data: rooms, loading } = useRealtimeData("rooms", "number", true);
   const [adding, setAdding] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [modalData, setModalData] = useState<any>(null); // null = closed, {} = create, {id...} = edit
+  
   const [roomNumber, setRoomNumber] = useState("");
   const [roomStatus, setRoomStatus] = useState<"vacant" | "occupied" | "maintenance">("vacant");
   const [roomPrice, setRoomPrice] = useState("5000");
   const [roomDescription, setRoomDescription] = useState("");
+  const [roomImages, setRoomImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
-  const handleAddRoom = async () => {
-    if (!roomNumber.trim()) return;
-    setAdding(true);
-    await supabase.from("rooms").insert({
-      number: roomNumber.trim(),
-      status: roomStatus,
-      price: Number(roomPrice) || 5000,
-      description: roomDescription.trim() || "Newly added room"
-    });
-    setAdding(false);
-    setIsCreateModalOpen(false);
+  const openCreateModal = () => {
     setRoomNumber("");
     setRoomStatus("vacant");
     setRoomPrice("5000");
     setRoomDescription("");
+    setRoomImages([]);
+    setModalData({});
+  };
+
+  const openEditModal = (room: any) => {
+    setRoomNumber(room.number || "");
+    setRoomStatus(room.status || "vacant");
+    setRoomPrice((room.price || 0).toString());
+    setRoomDescription(room.description || "");
+    setRoomImages(room.images || []);
+    setModalData(room);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setUploadingImage(true);
+    const newImages = [...roomImages];
+    
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const base64 = await compressImageToBase64(files[i]);
+        newImages.push(base64);
+      } catch (err) {
+        console.error("Failed to compress image:", err);
+        alert("Failed to process one of the images.");
+      }
+    }
+    
+    setRoomImages(newImages);
+    setUploadingImage(false);
+  };
+
+  const removeImage = (index: number) => {
+    setRoomImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveRoom = async () => {
+    if (!roomNumber.trim()) return;
+    setAdding(true);
+
+    const payload = {
+      number: roomNumber.trim(),
+      status: roomStatus,
+      price: Number(roomPrice) || 5000,
+      description: roomDescription.trim() || "Newly added room",
+      images: roomImages
+    };
+
+    if (modalData.id) {
+      await supabase.from("rooms").update(payload).eq("id", modalData.id);
+    } else {
+      await supabase.from("rooms").insert(payload);
+    }
+    
+    setAdding(false);
+    setModalData(null);
   };
 
   const handleDeleteRoom = async (id: string, e: React.MouseEvent) => {
@@ -316,7 +370,7 @@ function RoomsSection() {
           {loading ? "Loading rooms..." : `Manage all ${rooms.length} rooms in The Green House.`}
         </p>
         <button 
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={openCreateModal}
           disabled={adding}
           className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
         >
@@ -331,21 +385,21 @@ function RoomsSection() {
         </div>
       )}
 
-      {isCreateModalOpen && (
+      {modalData && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl"
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl"
           >
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold">Create Room</h3>
-                <p className="text-sm text-muted-foreground">Add a new room with default details.</p>
+                <h3 className="text-lg font-bold">{modalData.id ? "Edit Room" : "Create Room"}</h3>
+                <p className="text-sm text-muted-foreground">{modalData.id ? "Update room details and images." : "Add a new room with default details."}</p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={() => setModalData(null)}
                 className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"
               >
                 <X size={16} />
@@ -397,23 +451,53 @@ function RoomsSection() {
                   placeholder="Describe the room"
                 />
               </div>
+              
+              <div>
+                <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground mb-2 block">Room Images</label>
+                <div className="grid grid-cols-4 gap-2 mb-2">
+                  {roomImages.map((img, i) => (
+                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
+                      <img src={img} alt={`Room img ${i}`} className="w-full h-full object-cover" />
+                      <button 
+                        onClick={() => removeImage(i)}
+                        className="absolute inset-0 bg-background/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={20} className="text-red-500" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="aspect-square rounded-xl border border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 transition cursor-pointer">
+                    <ImagePlus size={20} />
+                    <span className="text-[10px] mt-1 font-semibold">Upload</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      multiple 
+                      className="hidden" 
+                      onChange={handleImageUpload} 
+                      disabled={uploadingImage}
+                    />
+                  </label>
+                </div>
+                {uploadingImage && <p className="text-[10px] text-primary animate-pulse">Processing images...</p>}
+              </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={() => setModalData(null)}
                 className="rounded-xl px-4 py-2 text-sm font-bold text-muted-foreground transition hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={handleAddRoom}
-                disabled={adding || !roomNumber.trim()}
+                onClick={handleSaveRoom}
+                disabled={adding || !roomNumber.trim() || uploadingImage}
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-50"
               >
-                {adding ? "Creating..." : "Create Room"}
+                {adding ? "Saving..." : modalData.id ? "Save Changes" : "Create Room"}
               </button>
             </div>
           </motion.div>
@@ -429,10 +513,15 @@ function RoomsSection() {
             transition={{ delay: i * 0.03 }}
             className="rounded-2xl border border-border bg-card p-4 hover:shadow-md transition-shadow cursor-pointer"
           >
+            {room.images && room.images.length > 0 && (
+              <div className="w-full h-32 rounded-xl overflow-hidden mb-3 border border-border">
+                <img src={room.images[0]} alt="Room preview" className="w-full h-full object-cover" />
+              </div>
+            )}
             <div className="flex items-center justify-between mb-3">
               <span className="text-lg font-bold">Room {room.number}</span>
-              <div className="flex items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+              <div className="flex items-center gap-1">
+                <span className={`mr-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
                   room.status === "occupied"
                     ? "bg-emerald-100 text-emerald-700"
                     : room.status === "vacant"
@@ -442,8 +531,15 @@ function RoomsSection() {
                   {room.status}
                 </span>
                 <button 
+                  onClick={(e) => { e.stopPropagation(); openEditModal(room); }}
+                  className="p-1.5 text-muted-foreground hover:bg-muted rounded-lg transition"
+                  title="Edit Room"
+                >
+                  <Edit2 size={14} />
+                </button>
+                <button 
                   onClick={(e) => handleDeleteRoom(room.id, e)}
-                  className="text-muted-foreground hover:text-red-500 transition"
+                  className="p-1.5 text-muted-foreground hover:text-red-500 rounded-lg transition"
                   title="Delete Room"
                 >
                   <X size={14} />

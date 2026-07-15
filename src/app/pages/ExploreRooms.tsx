@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { MapPin, Wifi, Wind, Bath, Search, ArrowRight, Building2, X } from "lucide-react";
+import { MapPin, Wifi, Wind, Bath, Search, ArrowRight, Building2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import RoutingMachine from "../components/map/RoutingMachine";
@@ -112,6 +112,116 @@ export function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; 
         </div>
       </motion.div>
     </div>
+  );
+}
+
+function RoomCard({ room, group, onApply }: { room: any, group: any, onApply: (room: any) => void }) {
+  const [imgIndex, setImgIndex] = useState(0);
+
+  const features = room.features || ["AC", "Wi-Fi"];
+  const hasAC = features.includes("AC") || features.includes("Air Conditioning");
+  const hasWifi = features.includes("Wi-Fi") || features.includes("Internet");
+  const price = room.price || 5000;
+  const images = room.images || [];
+
+  const nextImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImgIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImgIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card transition-all hover:shadow-xl hover:shadow-primary/5"
+    >
+      <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+        {images.length > 0 ? (
+          <>
+            <motion.img 
+              key={imgIndex}
+              initial={{ opacity: 0.5, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              src={images[imgIndex]} 
+              alt={`Room ${room.number} view ${imgIndex + 1}`} 
+              className="w-full h-full object-cover" 
+            />
+            {images.length > 1 && (
+              <>
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={prevImg} className="rounded-full bg-background/80 backdrop-blur p-1.5 text-foreground hover:bg-background transition">
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button onClick={nextImg} className="rounded-full bg-background/80 backdrop-blur p-1.5 text-foreground hover:bg-background transition">
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+                <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
+                  {images.map((_, i) => (
+                    <div key={i} className={`h-1.5 rounded-full transition-all ${i === imgIndex ? "w-4 bg-primary" : "w-1.5 bg-background/60"}`} />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#e6eedb]">
+            <span className="font-['Libre_Baskerville'] text-4xl text-primary/20">Room {room.number}</span>
+          </div>
+        )}
+        <div className="absolute top-4 left-4 rounded-full bg-background/90 backdrop-blur px-3 py-1 text-xs font-bold text-emerald-600">
+          Available
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
+              <MapPin size={12} /> {group.houseName}
+            </p>
+            <h3 className="font-['Libre_Baskerville'] text-xl font-bold">Room {room.number}</h3>
+          </div>
+          <div className="text-right">
+            <p className="font-bold text-lg text-primary">₱{price.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Per Month</p>
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground line-clamp-2 mb-6 flex-1">
+          {room.description || `A beautiful and spacious room located at ${group.houseName}. Perfect for students or young professionals looking for a comfortable living space.`}
+        </p>
+
+        <div className="mb-6 flex flex-wrap gap-2">
+          {hasAC && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Wind size={14} className="text-primary" /> AC
+            </div>
+          )}
+          {hasWifi && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Wifi size={14} className="text-primary" /> Wi-Fi
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Bath size={14} className="text-primary" /> Private Bath
+          </div>
+        </div>
+
+        <button 
+          onClick={() => onApply(room)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition-all hover:bg-[#173f39] group-hover:gap-3"
+        >
+          Apply Now <ArrowRight size={16} />
+        </button>
+      </div>
+    </motion.div>
   );
 }
 
@@ -278,78 +388,9 @@ export default function ExploreRooms() {
                 </div>
               ) : (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {group.rooms.map((room) => {
-                    const features = room.features || ["AC", "Wi-Fi"];
-                    const hasAC = features.includes("AC") || features.includes("Air Conditioning");
-                    const hasWifi = features.includes("Wi-Fi") || features.includes("Internet");
-                    const price = room.price || 5000;
-                    const images = room.images || [];
-
-                    return (
-                      <motion.div
-                        key={room.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card transition-all hover:shadow-xl hover:shadow-primary/5"
-                      >
-                        {/* Image Placeholder */}
-                        <div className="relative aspect-[4/3] bg-muted overflow-hidden">
-                          {images.length > 0 ? (
-                            <img src={images[0]} alt={`Room ${room.number}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-[#e6eedb]">
-                              <span className="font-['Libre_Baskerville'] text-4xl text-primary/20">Room {room.number}</span>
-                            </div>
-                          )}
-                          <div className="absolute top-4 left-4 rounded-full bg-background/90 backdrop-blur px-3 py-1 text-xs font-bold text-emerald-600">
-                            Available
-                          </div>
-                        </div>
-
-                        <div className="flex flex-1 flex-col p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
-                                <MapPin size={12} /> {group.houseName}
-                              </p>
-                              <h3 className="font-['Libre_Baskerville'] text-xl font-bold">Room {room.number}</h3>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold text-lg text-primary">₱{price.toLocaleString()}</p>
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Per Month</p>
-                            </div>
-                          </div>
-
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-6 flex-1">
-                            {room.description || "A clean, quiet, and well-maintained room perfectly suited for students and professionals."}
-                          </p>
-
-                          <div className="flex items-center gap-4 border-t border-border pt-4 mb-6">
-                            {hasAC && (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Wind size={14} className="text-primary" /> AC
-                              </div>
-                            )}
-                            {hasWifi && (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Wifi size={14} className="text-primary" /> Wi-Fi
-                              </div>
-                            )}
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Bath size={14} className="text-primary" /> Private Bath
-                            </div>
-                          </div>
-
-                          <button 
-                            onClick={() => handleApply(room)}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition-all hover:bg-[#173f39] group-hover:gap-3"
-                          >
-                            Apply Now <ArrowRight size={16} />
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                  {group.rooms.map((room) => (
+                    <RoomCard key={room.id} room={room} group={group} onApply={handleApply} />
+                  ))}
                 </div>
               )}
             </div>
