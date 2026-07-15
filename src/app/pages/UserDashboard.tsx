@@ -29,6 +29,15 @@ const navItems: NavItem[] = [
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
 
+const mockAnnouncements = [
+  { id: 1, title: "Water Interruption Notice", body: "Please be advised that there will be a scheduled water interruption tomorrow from 1:00 PM to 4:00 PM due to main line repairs.", date: "July 14, 2025" }
+];
+
+const mockRentHistory = [
+  { month: "June 2025", dueDate: "Jun 1, 2025", amount: "₱5,500", status: "Paid" },
+  { month: "May 2025", dueDate: "May 1, 2025", amount: "₱5,500", status: "Paid" },
+];
+
 export default function UserDashboard() {
   const { user } = useAuth();
   const [activeNav, setActiveNav] = useState("dashboard");
