@@ -35,6 +35,7 @@ const navItems: NavItem[] = [
   { label: "Rent", icon: <CreditCard size={18} />, id: "rent" },
   { label: "Maintenance", icon: <Wrench size={18} />, id: "maintenance" },
   { label: "Community", icon: <Store size={18} />, id: "community" },
+  { label: "Messages", icon: <MessageSquare size={18} />, id: "messages" },
   { label: "Visitors", icon: <Users size={18} />, id: "visitors" },
   { label: "Profile", icon: <User size={18} />, id: "profile" },
 ];
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
 export default function UserDashboard() {
   const { user } = useAuth();
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeChatUserId, setActiveChatUserId] = useState<string | null>(null);
 
   // Fetch all tenants to find the one linked to this user profile
   const { data: tenants, loading: tenantsLoading } = useRealtimeData("tenants");
@@ -75,7 +77,23 @@ export default function UserDashboard() {
           {activeNav === "room" && <RoomSection tenant={myTenant} room={myRoom} />}
           {activeNav === "rent" && <RentSection tenant={myTenant} />}
           {activeNav === "maintenance" && <MaintenanceSection room={myRoom} tenant={myTenant} />}
-          {activeNav === "community" && <CommunitySection profileId={user?.id} houseId={myRoom?.house_id} />}
+          {activeNav === "community" && (
+            <CommunitySection 
+              profileId={user?.id} 
+              houseId={myRoom?.house_id} 
+              onMessageSeller={(sellerId) => {
+                setActiveChatUserId(sellerId);
+                setActiveNav("messages");
+              }} 
+            />
+          )}
+          {activeNav === "messages" && (
+            <MessagesSection 
+              currentUserId={user?.id} 
+              activeChatUserId={activeChatUserId} 
+              setActiveChatUserId={setActiveChatUserId} 
+            />
+          )}
           {activeNav === "visitors" && <VisitorsSection profileId={user?.id} />}
         </>
       )}
@@ -517,9 +535,10 @@ function MaintenanceSection({ room, tenant }: { room: any, tenant: any }) {
   );
 }
 
-function CommunitySection({ profileId, houseId }: { profileId?: string, houseId?: string }) {
+function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?: string, houseId?: string, onMessageSeller: (id: string) => void }) {
   const { data: notices } = useRealtimeData("notices");
   const { data: marketplace } = useRealtimeData("marketplace_items");
+  const { data: profiles } = useRealtimeData("profiles");
 
   const [newItem, setNewItem] = useState("");
   const [newPrice, setNewPrice] = useState("");
@@ -602,18 +621,22 @@ function CommunitySection({ profileId, houseId }: { profileId?: string, houseId?
         </div>
 
         <div className="grid gap-3">
-          {marketplace.map((item) => (
+          {marketplace.map((item) => {
+            const seller = profiles.find((p: any) => p.id === item.profile_id);
+            return (
             <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
               <div>
                 <p className="font-bold">{item.item_name}</p>
-                <p className="text-xs text-muted-foreground">Seller: Resident • Posted today</p>
+                <p className="text-xs text-muted-foreground">Seller: {seller?.full_name || "Resident"} • Posted today</p>
               </div>
               <div className="text-right">
                 <p className="font-bold text-primary">₱{item.price.toLocaleString()}</p>
-                <button className="text-xs font-bold text-emerald-600 mt-1 hover:underline">Message Seller</button>
+                {seller?.id !== profileId && (
+                  <button onClick={() => onMessageSeller(seller?.id)} className="text-xs font-bold text-emerald-600 mt-1 hover:underline">Message Seller</button>
+                )}
               </div>
             </div>
-          ))}
+          )})}
           {marketplace.length === 0 && (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               No items for sale right now.
@@ -830,6 +853,137 @@ function ProfilePlaceholder() {
       <div className="grid size-16 place-items-center rounded-2xl bg-muted mb-4"><User size={24} className="text-muted-foreground" /></div>
       <h3 className="text-lg font-bold">My Profile</h3>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">Profile editing will be available in a future update.</p>
+    </div>
+  );
+}
+
+function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId }: { currentUserId?: string, activeChatUserId: string | null, setActiveChatUserId: (id: string | null) => void }) {
+  const { data: allMessages } = useRealtimeData("messages", "created_at", true);
+  const { data: profiles } = useRealtimeData("profiles");
+  
+  const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const myMessages = allMessages.filter((m: any) => m.sender_id === currentUserId || m.receiver_id === currentUserId);
+
+  const partnerIds = Array.from(new Set(myMessages.map((m: any) => m.sender_id === currentUserId ? m.receiver_id : m.sender_id)));
+  
+  if (activeChatUserId && !partnerIds.includes(activeChatUserId)) {
+    partnerIds.unshift(activeChatUserId);
+  }
+
+  const partners = partnerIds.map(id => profiles.find((p: any) => p.id === id)).filter(Boolean);
+  const activePartner = profiles.find((p: any) => p.id === activeChatUserId);
+
+  const chatHistory = myMessages.filter((m: any) => 
+    (m.sender_id === currentUserId && m.receiver_id === activeChatUserId) ||
+    (m.receiver_id === currentUserId && m.sender_id === activeChatUserId)
+  ).sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !currentUserId || !activeChatUserId) return;
+    setSending(true);
+    const { error } = await supabase.from("messages").insert({
+      sender_id: currentUserId,
+      receiver_id: activeChatUserId,
+      content: newMessage
+    });
+    if (error) alert("Failed to send message: " + error.message);
+    else setNewMessage("");
+    setSending(false);
+  };
+
+  return (
+    <div className="flex h-[75vh] rounded-2xl border border-border bg-card overflow-hidden max-w-6xl">
+      <div className="w-1/3 border-r border-border bg-muted/10 flex flex-col">
+        <div className="p-4 border-b border-border">
+          <h3 className="font-['Libre_Baskerville'] font-bold text-lg tracking-tight">Conversations</h3>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {partners.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground p-4">No conversations yet.</p>
+          ) : (
+            partners.map((p: any) => (
+              <button
+                key={p.id}
+                onClick={() => setActiveChatUserId(p.id)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl transition ${activeChatUserId === p.id ? "bg-primary/10 text-primary" : "hover:bg-muted/50"}`}
+              >
+                <div className="grid size-10 place-items-center rounded-full bg-primary/20 text-primary shrink-0">
+                  <User size={16} />
+                </div>
+                <div className="text-left overflow-hidden">
+                  <p className="font-bold text-sm truncate">{p.full_name}</p>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col bg-background relative">
+        {activeChatUserId && activePartner ? (
+          <>
+            <div className="p-4 border-b border-border flex items-center gap-3 bg-card z-10 shadow-sm">
+              <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
+                <User size={16} />
+              </div>
+              <div>
+                <p className="font-bold">{activePartner.full_name}</p>
+                <p className="text-xs text-muted-foreground">Tenant</p>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col">
+              {chatHistory.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+                  <MessageSquare size={32} className="mb-3 opacity-20" />
+                  <p className="text-sm">Start the conversation with {activePartner.full_name}</p>
+                </div>
+              ) : (
+                chatHistory.map((msg: any) => {
+                  const isMe = msg.sender_id === currentUserId;
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[75%] rounded-2xl px-5 py-3 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted border border-border rounded-bl-sm"}`}>
+                        <p>{msg.content}</p>
+                        <p className={`text-[10px] mt-1 text-right ${isMe ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                          {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="p-4 border-t border-border bg-card">
+              <div className="flex gap-2 relative">
+                <input
+                  type="text"
+                  placeholder="Type your message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                  className="flex-1 rounded-full border border-border bg-background px-6 py-3 text-sm outline-none focus:border-primary pr-12 transition"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={sending || !newMessage.trim()}
+                  className="absolute right-2 top-2 bottom-2 aspect-square grid place-items-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition"
+                >
+                  <Send size={16} className="ml-0.5" />
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+            <MessageSquare size={48} className="mb-4 opacity-10" />
+            <p>Select a conversation to start chatting</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
