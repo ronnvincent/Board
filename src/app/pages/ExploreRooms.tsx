@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { MapPin, Wifi, Wind, Bath, Search, ArrowRight, Building2, X } from "lucide-react";
 import { useRealtimeData } from "../hooks/useRealtimeData";
-import { supabase } from "../../lib/supabase";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import RoutingMachine from "../components/map/RoutingMachine";
 import { useAuth } from "../context/AuthContext";
+import CheckoutModal from "../components/rooms/CheckoutModal";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -123,6 +123,7 @@ export default function ExploreRooms() {
   const [search, setSearch] = useState("");
   const [selectedHouse, setSelectedHouse] = useState<string>("all");
   const [activeLocationHouse, setActiveLocationHouse] = useState<any>(null);
+  const [checkoutRoom, setCheckoutRoom] = useState<any>(null);
 
   const filteredRooms = rooms.filter((r) => {
     if (r.status !== "vacant") return false;
@@ -159,25 +160,12 @@ export default function ExploreRooms() {
     };
   }).sort((a, b) => a.houseName.localeCompare(b.houseName));
 
-  const handleApply = async (roomId: string) => {
+  const handleApply = (room: any) => {
     if (!user) {
       alert("Please log in to apply for a room.");
       return;
     }
-
-    const { error } = await supabase.from("tenants").insert({
-      name: user.fullName || "Applicant",
-      room_id: roomId,
-      profile_id: user.id,
-      rent_status: "Due"
-    });
-
-    if (error) {
-      alert("Failed to submit application.");
-      console.error(error);
-    } else {
-      alert(`Application submitted successfully! Administrator will review your request.`);
-    }
+    setCheckoutRoom(room);
   };
 
   return (
@@ -353,7 +341,7 @@ export default function ExploreRooms() {
                           </div>
 
                           <button 
-                            onClick={() => handleApply(room.id)}
+                            onClick={() => handleApply(room)}
                             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition-all hover:bg-[#173f39] group-hover:gap-3"
                           >
                             Apply Now <ArrowRight size={16} />
@@ -373,6 +361,14 @@ export default function ExploreRooms() {
         isOpen={Boolean(activeLocationHouse)}
         onClose={() => setActiveLocationHouse(null)}
         house={activeLocationHouse}
+      />
+
+      <CheckoutModal
+        isOpen={Boolean(checkoutRoom)}
+        onClose={() => setCheckoutRoom(null)}
+        room={checkoutRoom}
+        house={checkoutRoom ? houses.find(h => h.id === checkoutRoom.house_id) : null}
+        user={user}
       />
     </div>
   );
