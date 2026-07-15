@@ -134,7 +134,6 @@ export default function UserDashboard() {
             />
           )}
           {activeNav === "visitors" && <VisitorsSection profileId={user?.id} />}
-          {activeNav === "sumbungan" && <SumbunganSection currentUserId={user?.id} />}
         </>
       )}
     </DashboardLayout>
