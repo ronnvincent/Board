@@ -14,12 +14,17 @@ function AppRouter() {
   const { user, isAuthenticated } = useAuth();
   const [page, setPage] = useState<Page>("home");
 
-  // Auto-redirect to dashboard when user signs in
+  // Auto-redirect to dashboard when user signs in or refreshes
   useEffect(() => {
-    if (isAuthenticated && page === "login") {
-      // Small delay so user sees the success state
-      const timer = setTimeout(() => setPage("dashboard"), 1200);
-      return () => clearTimeout(timer);
+    if (isAuthenticated) {
+      if (page === "login") {
+        // Small delay so user sees the success state
+        const timer = setTimeout(() => setPage("dashboard"), 1200);
+        return () => clearTimeout(timer);
+      } else if (page === "home") {
+        // Immediate redirect if refreshing the page while logged in
+        setPage("dashboard");
+      }
     }
   }, [isAuthenticated, page]);
 
