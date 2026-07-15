@@ -409,8 +409,7 @@ function MaintenanceSection({ room }: { room: any }) {
     setSubmitting(true);
     const { error } = await supabase.from("maintenance_requests").insert({
       room_id: room.id,
-      description: newRequest,
-      status: "pending"
+      description: newRequest
     });
     if (error) {
       alert("Failed to submit request: " + error.message);
