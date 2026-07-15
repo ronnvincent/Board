@@ -80,18 +80,33 @@ export interface Database {
           id: string
           number: string
           status: 'occupied' | 'vacant' | 'maintenance'
+          price: number
+          description: string
+          features: any
+          images: any
+          house_id: string | null
           created_at: string
         }
         Insert: {
           id?: string
           number: string
           status?: 'occupied' | 'vacant' | 'maintenance'
+          price?: number
+          description?: string
+          features?: any
+          images?: any
+          house_id?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           number?: string
           status?: 'occupied' | 'vacant' | 'maintenance'
+          price?: number
+          description?: string
+          features?: any
+          images?: any
+          house_id?: string | null
           created_at?: string
         }
       }
@@ -131,6 +146,7 @@ export interface Database {
           issue: string
           status: 'pending' | 'in-progress' | 'done'
           date_reported: string | null
+          image_url: string | null
           created_at: string
         }
         Insert: {
@@ -139,6 +155,7 @@ export interface Database {
           issue: string
           status?: 'pending' | 'in-progress' | 'done'
           date_reported?: string | null
+          image_url?: string | null
           created_at?: string
         }
         Update: {
@@ -147,6 +164,7 @@ export interface Database {
           issue?: string
           status?: 'pending' | 'in-progress' | 'done'
           date_reported?: string | null
+          image_url?: string | null
           created_at?: string
         }
       }
@@ -173,6 +191,87 @@ export interface Database {
           role?: string
           tasks?: number
           status?: 'active' | 'inactive'
+          created_at?: string
+        }
+      }
+      visitors: {
+        Row: {
+          id: string
+          profile_id: string | null
+          visitor_name: string
+          date_of_visit: string
+          status: 'pending' | 'approved' | 'arrived' | 'completed'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id?: string | null
+          visitor_name: string
+          date_of_visit: string
+          status?: 'pending' | 'approved' | 'arrived' | 'completed'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string | null
+          visitor_name?: string
+          date_of_visit?: string
+          status?: 'pending' | 'approved' | 'arrived' | 'completed'
+          created_at?: string
+        }
+      }
+      marketplace_items: {
+        Row: {
+          id: string
+          profile_id: string | null
+          item_name: string
+          price: number
+          description: string | null
+          status: 'available' | 'sold'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id?: string | null
+          item_name: string
+          price: number
+          description?: string | null
+          status?: 'available' | 'sold'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string | null
+          item_name?: string
+          price?: number
+          description?: string | null
+          status?: 'available' | 'sold'
+          created_at?: string
+        }
+      }
+      notices: {
+        Row: {
+          id: string
+          house_id: string | null
+          author_id: string | null
+          title: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          house_id?: string | null
+          author_id?: string | null
+          title: string
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          house_id?: string | null
+          author_id?: string | null
+          title?: string
+          content?: string
           created_at?: string
         }
       }
