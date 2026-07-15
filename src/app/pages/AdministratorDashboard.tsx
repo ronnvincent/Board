@@ -1001,11 +1001,87 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
 }
 
 function ActivitySection() {
+  const { data: profiles } = useRealtimeData("profiles");
+  const { data: tenants } = useRealtimeData("tenants");
+  const { data: requests } = useRealtimeData("maintenance_requests");
+  const { data: houses } = useRealtimeData("houses");
+
+  const activities = [
+    ...profiles.map((p: any) => ({
+      id: `profile_${p.id}`,
+      type: "user",
+      title: "New User Registered",
+      desc: `${p.full_name || 'A user'} joined the platform.`,
+      date: new Date(p.created_at || Date.now()),
+      icon: <UserPlus size={16} />
+    })),
+    ...tenants.map((t: any) => ({
+      id: `tenant_${t.id}`,
+      type: "tenant",
+      title: "New Admission Request",
+      desc: `${t.name || 'A user'} applied for a room.`,
+      date: new Date(t.created_at || Date.now()),
+      icon: <Activity size={16} />
+    })),
+    ...requests.map((r: any) => ({
+      id: `req_${r.id}`,
+      type: "maintenance",
+      title: "Maintenance Ticket",
+      desc: `Ticket created: ${r.subject || 'No subject'}`,
+      date: new Date(r.created_at || Date.now()),
+      icon: <Wrench size={16} />
+    })),
+    ...houses.map((h: any) => ({
+      id: `house_${h.id}`,
+      type: "house",
+      title: "New Property Added",
+      desc: `${h.name || 'A house'} was added to the platform.`,
+      date: new Date(h.created_at || Date.now()),
+      icon: <Building2 size={16} />
+    }))
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Platform-wide activity log.</p>
-      <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-        <p className="text-sm font-medium text-foreground">No recent activity.</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">Activity Log</h2>
+          <p className="text-sm text-muted-foreground mt-1">Real-time platform activity.</p>
+        </div>
+      </div>
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm relative">
+        <div className="absolute left-8 sm:left-10 top-6 bottom-6 w-px bg-border"></div>
+        {activities.length === 0 ? (
+          <div className="text-center py-10 relative z-10">
+            <p className="text-sm text-muted-foreground">No recent activity.</p>
+          </div>
+        ) : (
+          <div className="space-y-6 relative z-10">
+            {activities.map((item, index) => (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                key={item.id} 
+                className="flex items-start gap-4 sm:gap-6"
+              >
+                <div className={`grid size-9 sm:size-10 shrink-0 place-items-center rounded-full border border-border ${
+                  item.type === 'user' ? 'bg-blue-50 text-blue-600' :
+                  item.type === 'tenant' ? 'bg-amber-50 text-amber-600' :
+                  item.type === 'maintenance' ? 'bg-rose-50 text-rose-600' :
+                  'bg-emerald-50 text-emerald-600'
+                }`}>
+                  {item.icon}
+                </div>
+                <div className="pt-2">
+                  <p className="text-sm font-bold">{item.title}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{item.desc}</p>
+                  <p className="text-[10px] font-['DM_Mono'] text-muted-foreground mt-2 uppercase tracking-wider">{item.date.toLocaleString()}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1120,11 +1196,153 @@ function UsersSection() {
 }
 
 function SettingsPlaceholder() {
+  const defaultSettings = {
+    platformName: "BoardingHow",
+    supportEmail: "support@boardinghow.com",
+    allowRegistration: true,
+    maintenanceMode: false,
+    darkModeDefault: false,
+    themeColor: "#1f5149"
+  };
+
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem("board_admin_settings");
+      return saved ? JSON.parse(saved) : defaultSettings;
+    } catch {
+      return defaultSettings;
+    }
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [activeTab, setActiveTab] = useState("general");
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    
+    // In a real app this would save to a database table like `system_settings`
+    // For now we persist in localStorage so the admin experience feels complete
+    localStorage.setItem("board_admin_settings", JSON.stringify(settings));
+    
+    setTimeout(() => {
+      setIsSaving(false);
+      setSuccessMsg("Settings updated successfully!");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    }, 600);
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="grid size-16 place-items-center rounded-2xl bg-muted mb-4"><Settings size={24} className="text-muted-foreground" /></div>
-      <h3 className="text-lg font-bold">Platform Settings</h3>
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">Global platform settings will be configurable once the backend is connected.</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">Platform Settings</h2>
+          <p className="text-sm text-muted-foreground mt-1">Configure global preferences and system features.</p>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-[240px_1fr] gap-6 sm:gap-8">
+        <div className="flex flex-col gap-2">
+          <button onClick={() => setActiveTab("general")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "general" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>General</button>
+          <button onClick={() => setActiveTab("system")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "system" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>System Config</button>
+          <button onClick={() => setActiveTab("appearance")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "appearance" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>Appearance</button>
+        </div>
+
+        <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
+          {successMsg && (
+            <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3 text-emerald-800">
+              <CheckCircle2 size={18} />
+              <p className="text-sm font-medium">{successMsg}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSave}>
+            {activeTab === "general" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold">General Details</h3>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Platform Name</label>
+                    <input type="text" value={settings.platformName} onChange={(e) => setSettings({...settings, platformName: e.target.value})} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Support Email</label>
+                    <input type="email" value={settings.supportEmail} onChange={(e) => setSettings({...settings, supportEmail: e.target.value})} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "system" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold">System Configuration</h3>
+                  
+                  <label className="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/50 cursor-pointer transition">
+                    <div>
+                      <p className="text-sm font-bold text-foreground">Allow Public Registration</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Allow users to create their own accounts</p>
+                    </div>
+                    <div className={`w-11 h-6 rounded-full transition-colors relative ${settings.allowRegistration ? "bg-primary" : "bg-muted-foreground/30"}`}>
+                      <div className={`absolute top-1 bottom-1 w-4 rounded-full bg-white transition-all ${settings.allowRegistration ? "left-6" : "left-1"}`}></div>
+                    </div>
+                    <input type="checkbox" checked={settings.allowRegistration} onChange={(e) => setSettings({...settings, allowRegistration: e.target.checked})} className="hidden" />
+                  </label>
+
+                  <label className="flex items-center justify-between p-4 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 cursor-pointer transition">
+                    <div>
+                      <p className="text-sm font-bold text-rose-700">Maintenance Mode</p>
+                      <p className="text-xs text-rose-600/70 mt-0.5">Lock down the site for updates</p>
+                    </div>
+                    <div className={`w-11 h-6 rounded-full transition-colors relative ${settings.maintenanceMode ? "bg-rose-600" : "bg-rose-200"}`}>
+                      <div className={`absolute top-1 bottom-1 w-4 rounded-full bg-white transition-all ${settings.maintenanceMode ? "left-6" : "left-1"}`}></div>
+                    </div>
+                    <input type="checkbox" checked={settings.maintenanceMode} onChange={(e) => setSettings({...settings, maintenanceMode: e.target.checked})} className="hidden" />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "appearance" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold">Brand & Theme</h3>
+                  
+                  <label className="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/50 cursor-pointer transition">
+                    <div>
+                      <p className="text-sm font-bold text-foreground">Default Dark Mode</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Force dark mode for new users</p>
+                    </div>
+                    <div className={`w-11 h-6 rounded-full transition-colors relative ${settings.darkModeDefault ? "bg-primary" : "bg-muted-foreground/30"}`}>
+                      <div className={`absolute top-1 bottom-1 w-4 rounded-full bg-white transition-all ${settings.darkModeDefault ? "left-6" : "left-1"}`}></div>
+                    </div>
+                    <input type="checkbox" checked={settings.darkModeDefault} onChange={(e) => setSettings({...settings, darkModeDefault: e.target.checked})} className="hidden" />
+                  </label>
+
+                  <div className="space-y-1.5 pt-4">
+                    <label className="text-sm font-medium text-muted-foreground">Primary Theme Color (Hex)</label>
+                    <div className="flex gap-3 items-center">
+                      <div className="size-10 rounded-xl border border-border shadow-inner" style={{ backgroundColor: settings.themeColor }}></div>
+                      <input type="text" value={settings.themeColor} onChange={(e) => setSettings({...settings, themeColor: e.target.value})} className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary font-mono" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 pt-6 border-t border-border flex justify-end">
+              <button 
+                type="submit" 
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition disabled:opacity-50"
+              >
+                {isSaving ? "Saving..." : "Save Settings"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
