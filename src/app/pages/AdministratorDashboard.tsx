@@ -1121,6 +1121,39 @@ function SettingsPlaceholder() {
   );
 }
 
+const playSound = (type: 'success' | 'error') => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    if (type === 'success') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } else {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.4);
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
+    }
+  } catch (e) {
+    console.error("Audio playback failed", e);
+  }
+};
+
 function SecurityGateSection() {
   const { data: visitors } = useRealtimeData("visitors");
   const [scanCode, setScanCode] = useState("");
@@ -1132,8 +1165,19 @@ function SecurityGateSection() {
 
   const handleScan = (e: React.FormEvent) => {
     e.preventDefault();
-    setLastScanned(scanCode.trim());
+    const code = scanCode.trim();
+    if (!code) return;
+
+    setLastScanned(code);
     setScanCode("");
+    
+    // Play sound based on result
+    const matched = visitors.find((v) => v.id === code);
+    if (matched) {
+      playSound('success');
+    } else {
+      playSound('error');
+    }
   };
 
   const handleCameraScan = (result: any) => {
@@ -1150,8 +1194,14 @@ function SecurityGateSection() {
 
     if (scannedText && scannedText !== lastScanned) {
       setLastScanned(scannedText);
-      // Play a small beep sound if you wanted, but for now just turn off camera
       setCameraActive(false);
+
+      const matched = visitors.find((v) => v.id === scannedText);
+      if (matched) {
+        playSound('success');
+      } else {
+        playSound('error');
+      }
     }
   };
 
