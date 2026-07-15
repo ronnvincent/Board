@@ -34,18 +34,24 @@ export interface Database {
           id: string
           name: string
           rooms: number
+          latitude: number | null
+          longitude: number | null
           created_at: string
         }
         Insert: {
           id?: string
           name: string
           rooms?: number
+          latitude?: number | null
+          longitude?: number | null
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
           rooms?: number
+          latitude?: number | null
+          longitude?: number | null
           created_at?: string
         }
       }

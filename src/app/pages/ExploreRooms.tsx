@@ -1,8 +1,118 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { MapPin, Wifi, Wind, Bath, Search, ArrowRight, Building2 } from "lucide-react";
+import { MapPin, Wifi, Wind, Bath, Search, ArrowRight, Building2, X } from "lucide-react";
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import RoutingMachine from "../components/map/RoutingMachine";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import shadowUrl from "leaflet/dist/images/marker-shadow.png";
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl,
+  iconUrl,
+  shadowUrl,
+});
+
+function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; onClose: () => void; house: any }) {
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || !house) {
+      setUserPosition(null);
+      setLocationError(null);
+      return;
+    }
+
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+      setLocationError("Location services are not available in this browser.");
+      return;
+    }
+
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserPosition([position.coords.latitude, position.coords.longitude]);
+      },
+      (error) => {
+        const message = error.code === 1
+          ? "Location access was denied. You can still view the pinned house location."
+          : "Unable to determine your location right now.";
+        setLocationError(message);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [isOpen, house?.id]);
+
+  if (!isOpen || !house) return null;
+
+  const targetPosition: [number, number] = house?.latitude && house?.longitude
+    ? [Number(house.latitude), Number(house.longitude)]
+    : [14.5995, 120.9842];
+  const center = userPosition ?? targetPosition;
+  const hasCoordinates = house?.latitude != null && house?.longitude != null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-3xl rounded-2xl border border-border bg-card p-4 shadow-2xl"
+      >
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-['Libre_Baskerville'] text-xl font-bold">{house.name}</h3>
+            <p className="text-sm text-muted-foreground">Route from your current location to this boarding house.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"
+            aria-label="Close map"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="mb-3 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+          {locationError ? (
+            <p>{locationError}</p>
+          ) : userPosition ? (
+            <p>Your current location is being used to calculate the route.</p>
+          ) : (
+            <p>Requesting your location to draw the route…</p>
+          )}
+          {!hasCoordinates && (
+            <p className="mt-1 text-xs text-amber-600">This house does not have a pinned location yet. Ask an administrator to set one.</p>
+          )}
+        </div>
+
+        <div className="h-[420px] w-full overflow-hidden rounded-xl border border-border">
+          <MapContainer key={`${house.id}-${targetPosition[0]}-${targetPosition[1]}`} center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+            {userPosition && (
+              <Marker position={userPosition}>
+                <Popup>Your current location</Popup>
+              </Marker>
+            )}
+            <Marker position={targetPosition}>
+              <Popup>{house.name}</Popup>
+            </Marker>
+            {userPosition && <RoutingMachine userPos={userPosition} targetPos={targetPosition} />}
+          </MapContainer>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function ExploreRooms() {
   const { data: rooms, loading: roomsLoading } = useRealtimeData("rooms");
@@ -10,6 +120,7 @@ export default function ExploreRooms() {
 
   const [search, setSearch] = useState("");
   const [selectedHouse, setSelectedHouse] = useState<string>("all");
+  const [activeLocationHouse, setActiveLocationHouse] = useState<any>(null);
 
   const filteredRooms = rooms.filter((r) => {
     if (r.status !== "vacant") return false;
@@ -41,6 +152,7 @@ export default function ExploreRooms() {
     return {
       houseId,
       houseName: house?.name || "Main House",
+      house,
       rooms: houseRooms
     };
   }).sort((a, b) => a.houseName.localeCompare(b.houseName));
@@ -101,11 +213,19 @@ export default function ExploreRooms() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {houseGroups.map((group) => (
-              <motion.button
+              <motion.div
                 key={group.houseId}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={() => setSelectedHouse(group.houseId)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedHouse(group.houseId);
+                  }
+                }}
                 className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 text-center transition-all hover:border-primary hover:shadow-xl hover:shadow-primary/5"
               >
                 <div className="grid size-16 place-items-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
@@ -117,7 +237,17 @@ export default function ExploreRooms() {
                     {group.rooms.length} {group.rooms.length === 1 ? "room" : "rooms"} available
                   </p>
                 </div>
-              </motion.button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setActiveLocationHouse(group.house);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary/20"
+                >
+                  <MapPin size={14} /> See Location
+                </button>
+              </motion.div>
             ))}
           </div>
         )
@@ -220,6 +350,12 @@ export default function ExploreRooms() {
           ))}
         </div>
       )}
+
+      <LocationMapModal
+        isOpen={Boolean(activeLocationHouse)}
+        onClose={() => setActiveLocationHouse(null)}
+        house={activeLocationHouse}
+      />
     </div>
   );
 }

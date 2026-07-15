@@ -31,6 +31,29 @@ const navItems: NavItem[] = [
 
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+// Fix for default marker icon in react-leaflet
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import shadowUrl from "leaflet/dist/images/marker-shadow.png";
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl,
+  iconUrl,
+  shadowUrl,
+});
+
+function LocationPicker({ position, setPosition }: { position: [number, number], setPosition: (p: [number, number]) => void }) {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return <Marker position={position} />;
+}
 
 export default function AdministratorDashboard() {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -407,11 +430,21 @@ function HousesSection() {
 function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () => void, house: any }) {
   const [name, setName] = useState(house?.name || "");
   const [rooms, setRooms] = useState(house?.rooms?.toString() || "");
+  const [position, setPosition] = useState<[number, number]>(
+    house?.latitude && house?.longitude 
+      ? [house.latitude, house.longitude] 
+      : [14.5995, 120.9842] // Default to Manila
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setName(house?.name || "");
     setRooms(house?.rooms?.toString() || "");
+    if (house?.latitude && house?.longitude) {
+      setPosition([house.latitude, house.longitude]);
+    } else {
+      setPosition([14.5995, 120.9842]);
+    }
   }, [house, isOpen]);
 
   if (!isOpen) return null;
@@ -421,6 +454,8 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
     const payload = {
       name,
       rooms: parseInt(rooms || "0", 10),
+      latitude: position[0],
+      longitude: position[1]
     };
 
     if (house) {
@@ -463,6 +498,19 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
           <div>
             <label className="text-xs font-bold text-muted-foreground">Total Room Capacity</label>
             <input type="number" min="0" value={rooms} onChange={(e) => setRooms(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-muted-foreground">Location Pin (Click on map to set)</label>
+            <div className="mt-1 h-[200px] w-full rounded-xl overflow-hidden border border-border relative z-0">
+              <MapContainer center={position} zoom={13} style={{ height: "100%", width: "100%" }}>
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                <LocationPicker position={position} setPosition={setPosition} />
+              </MapContainer>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">Coordinates: {position[0].toFixed(4)}, {position[1].toFixed(4)}</p>
           </div>
         </div>
 
