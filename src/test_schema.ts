@@ -18,10 +18,10 @@ async function run() {
     return;
   }
   
-  if (defs.profiles) {
-    console.log("Profiles cols:", Object.keys(defs.profiles.properties));
+  if (defs) {
+    console.log("Tables:", Object.keys(defs));
   } else {
-    console.log("Profiles table not found in schema");
+    console.log("No schemas found");
   }
 }
 run();
