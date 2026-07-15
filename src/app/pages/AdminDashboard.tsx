@@ -827,7 +827,6 @@ function MaintenanceSection() {
       subject: requestIssue.trim(),
       description: requestIssue.trim(),
       room_id: requestRoomId || null,
-      status: "pending",
       date_reported: new Date().toLocaleDateString()
     });
     setAdding(false);

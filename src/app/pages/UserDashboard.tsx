@@ -852,7 +852,6 @@ function MaintenanceSectionV2({
       tenant_id: tenant.id,
       subject: subject.trim(),
       description: description.trim() || subject.trim(),
-      status: "pending" as const,
       date_reported: new Date().toISOString()
     };
 
@@ -870,8 +869,7 @@ function MaintenanceSectionV2({
         await supabase.from("maintenance_updates").insert({
           maintenance_request_id: requestId,
           author_id: tenant.profile_id,
-          message: "Request submitted by tenant.",
-          status: "pending"
+          message: "Request submitted by tenant."
         });
       }
       await supabase.from("notifications").insert({

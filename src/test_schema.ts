@@ -1,27 +1,29 @@
 import fetch from 'node-fetch';
 
 async function run() {
-  const url = "https://mfypampschkhqnjrzsov.supabase.co/rest/v1/";
+  const base = "https://mfypampschkhqnjrzsov.supabase.co/rest/v1";
   const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1meXBhbXBzY2hraHFuanJ6c292Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMjczMjYsImV4cCI6MjA5OTYwMzMyNn0.6RTUxJbpBWeJOgq3RdbnPMakwTulL1ksVDnHs8usNsU";
+  const headers = {
+    "apikey": key,
+    "Authorization": `Bearer ${key}`,
+    "Accept": "application/json"
+  };
   
-  const res = await fetch(url, {
-    headers: {
-      "apikey": key,
-      "Authorization": `Bearer ${key}`,
-      "Accept": "application/openapi+json"
-    }
-  });
+  // Get one row from maintenance_requests to see actual columns and values
+  const res = await fetch(`${base}/maintenance_requests?limit=5&order=created_at.desc`, { headers });
   const data = await res.json();
-  const defs = data.definitions || data.components?.schemas;
-  if (!defs) {
-    console.log("No schemas found", Object.keys(data));
-    return;
-  }
+  console.log("maintenance_requests sample rows:");
+  console.log(JSON.stringify(data, null, 2));
   
-  if (defs) {
-    console.log("Tables:", Object.keys(defs));
-  } else {
-    console.log("No schemas found");
+  // Also try the OpenAPI schema with trailing slash
+  const schemaRes = await fetch(`${base}/`, {
+    headers: { ...headers, "Accept": "application/openapi+json" }
+  });
+  const schemaData = await schemaRes.json();
+  const defs = schemaData.definitions;
+  if (defs && defs.maintenance_requests) {
+    console.log("\n\nOpenAPI maintenance_requests definition:");
+    console.log(JSON.stringify(defs.maintenance_requests, null, 2));
   }
 }
 run();
