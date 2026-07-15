@@ -17,7 +17,8 @@ import {
   MessageSquare,
   MapPin,
   QrCode,
-  X
+  X,
+  Clock
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -555,7 +556,10 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
 
   const [isRegistering, setIsRegistering] = useState(false);
 
-  const myVisitors = visitors.filter(v => v.profile_id === profileId);
+  const myVisitors = visitors.filter((v: any) => v.profile_id === profileId).sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+  
+  const upcomingVisitors = myVisitors.filter((v: any) => v.status === "pending");
+  const historyVisitors = myVisitors.filter((v: any) => v.status === "approved");
 
   const handleRegister = async () => {
     if (!visitorName.trim() || !visitDate || !profileId) return;
@@ -623,20 +627,21 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
       </motion.div>
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
-        <div className="border-b border-border px-5 py-4">
-          <h3 className="text-sm font-bold">Upcoming Visitors</h3>
+        <div className="border-b border-border px-5 py-4 flex items-center justify-between">
+          <h3 className="text-sm font-bold flex items-center gap-2">
+            <Clock size={16} className="text-muted-foreground" />
+            Pending Visitors
+          </h3>
         </div>
         <div className="divide-y divide-border">
-          {myVisitors.map((v) => (
+          {upcomingVisitors.map((v) => (
             <div key={v.id} className="flex items-center justify-between px-5 py-4">
               <div>
                 <p className="font-bold">{v.visitor_name}</p>
                 <p className="text-xs text-muted-foreground">{new Date(v.date_of_visit).toLocaleString()}</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                  v.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-50 text-amber-600'
-                }`}>
+                <span className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-600">
                   {v.status}
                 </span>
                 <button
@@ -649,9 +654,45 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
               </div>
             </div>
           ))}
-          {myVisitors.length === 0 && (
+          {upcomingVisitors.length === 0 && (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              You haven't registered any visitors yet.
+              You have no pending gate passes.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card overflow-hidden mt-6">
+        <div className="border-b border-border px-5 py-4">
+          <h3 className="text-sm font-bold flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-emerald-500" />
+            Approved History
+          </h3>
+        </div>
+        <div className="divide-y divide-border">
+          {historyVisitors.map((v) => (
+            <div key={v.id} className="flex items-center justify-between px-5 py-4 opacity-80 hover:opacity-100 transition">
+              <div>
+                <p className="font-bold">{v.visitor_name}</p>
+                <p className="text-xs text-muted-foreground">{new Date(v.date_of_visit).toLocaleString()}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">
+                  {v.status}
+                </span>
+                <button
+                  onClick={() => setSelectedPass(v)}
+                  className="rounded-full bg-primary/10 p-2 text-primary hover:bg-primary/20 transition"
+                  title="View Gate Pass"
+                >
+                  <QrCode size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+          {historyVisitors.length === 0 && (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              No approved visitors yet.
             </div>
           )}
         </div>
