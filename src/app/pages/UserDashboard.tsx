@@ -16,7 +16,8 @@ import {
   Store,
   MessageSquare,
   MapPin,
-  QrCode
+  QrCode,
+  X
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
