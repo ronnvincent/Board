@@ -115,7 +115,7 @@ export function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; 
   );
 }
 
-function RoomCard({ room, group, onApply }: { room: any, group: any, onApply: (room: any) => void }) {
+function RoomCard({ room, group, onApply, tenants }: { room: any, group: any, onApply: (room: any) => void, tenants: any[] }) {
   const [imgIndex, setImgIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
 
@@ -124,6 +124,9 @@ function RoomCard({ room, group, onApply }: { room: any, group: any, onApply: (r
   const hasWifi = features.includes("Wi-Fi") || features.includes("Internet");
   const price = room.price || 5000;
   const images = room.images || [];
+  const maxOccupants = room.max_occupants || 1;
+  const currentOccupants = tenants.filter((t: any) => t.room_id === room.id).length;
+  const isFull = currentOccupants >= maxOccupants;
 
   const nextImg = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -177,8 +180,8 @@ function RoomCard({ room, group, onApply }: { room: any, group: any, onApply: (r
             <span className="font-['Libre_Baskerville'] text-4xl text-primary/20">Room {room.number}</span>
           </div>
         )}
-        <div className="absolute top-4 left-4 rounded-full bg-background/90 backdrop-blur px-3 py-1 text-xs font-bold text-emerald-600">
-          Available
+        <div className={`absolute top-4 left-4 rounded-full backdrop-blur px-3 py-1 text-xs font-bold ${isFull ? "bg-red-500/90 text-white" : "bg-background/90 text-emerald-600"}`}>
+          {isFull ? `Occupied ${currentOccupants}/${maxOccupants}` : `Available ${currentOccupants}/${maxOccupants}`}
         </div>
       </div>
 
@@ -218,9 +221,10 @@ function RoomCard({ room, group, onApply }: { room: any, group: any, onApply: (r
 
         <button 
           onClick={() => onApply(room)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition-all hover:bg-[#173f39] group-hover:gap-3"
+          disabled={isFull}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-all group-hover:gap-3 ${isFull ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-primary text-primary-foreground hover:bg-[#173f39]"}`}
         >
-          Apply Now <ArrowRight size={16} />
+          {isFull ? "Room Full" : <>Apply Now <ArrowRight size={16} /></>}
         </button>
       </div>
 
@@ -282,6 +286,7 @@ export default function ExploreRooms() {
   const { user } = useAuth();
   const { data: rooms, loading: roomsLoading } = useRealtimeData("rooms");
   const { data: houses } = useRealtimeData("houses");
+  const { data: tenants } = useRealtimeData("tenants");
 
   const [search, setSearch] = useState("");
   const [selectedHouse, setSelectedHouse] = useState<string>("all");
@@ -289,7 +294,6 @@ export default function ExploreRooms() {
   const [checkoutRoom, setCheckoutRoom] = useState<any>(null);
 
   const filteredRooms = rooms.filter((r) => {
-    if (r.status !== "vacant") return false;
     if (selectedHouse !== "all" && r.house_id !== selectedHouse) return false;
     if (search && !r.number.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -373,51 +377,58 @@ export default function ExploreRooms() {
       {roomsLoading ? (
         <div className="py-20 text-center text-muted-foreground">Loading...</div>
       ) : selectedHouse === "all" ? (
-        // SHOW LOCATIONS VIEW
-        houseGroups.length === 0 ? (
+        // SHOW LOCATIONS VIEW — show ALL houses, not just ones with vacant rooms
+        houses.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-border py-24 text-center">
             <p className="font-medium text-lg">No locations available</p>
-            <p className="text-muted-foreground text-sm mt-1">There are no available rooms right now.</p>
+            <p className="text-muted-foreground text-sm mt-1">There are no boarding houses set up yet.</p>
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {houseGroups.map((group) => (
+            {houses.map((house: any) => {
+              const houseRooms = rooms.filter((r: any) => r.house_id === house.id);
+              const vacantRooms = houseRooms.filter((r: any) => r.status === "vacant" || r.status !== "occupied");
+              const vacantCount = vacantRooms.length;
+              return (
               <motion.div
-                key={group.houseId}
+                key={house.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                onClick={() => setSelectedHouse(group.houseId)}
+                onClick={() => setSelectedHouse(house.id)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    setSelectedHouse(group.houseId);
+                    setSelectedHouse(house.id);
                   }
                 }}
-                className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 text-center transition-all hover:border-primary hover:shadow-xl hover:shadow-primary/5"
-              >
+                className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 text-center transition-all hover:border-primary hover:shadow-xl hover:shadow-primary/5">
                 <div className="grid size-16 place-items-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
                   <Building2 size={32} />
                 </div>
                 <div>
-                  <h3 className="font-['Libre_Baskerville'] text-2xl font-bold">{group.houseName}</h3>
+                  <h3 className="font-['Libre_Baskerville'] text-2xl font-bold">{house.name}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {group.rooms.length} {group.rooms.length === 1 ? "room" : "rooms"} available
+                    {houseRooms.length === 0
+                      ? "No rooms yet"
+                      : vacantCount === 0
+                        ? "Fully Occupied"
+                        : `${vacantCount} ${vacantCount === 1 ? "room" : "rooms"} available`
+                    }
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
-                    setActiveLocationHouse(group.house);
+                    setActiveLocationHouse(house);
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary/20"
-                >
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary/20">
                   <MapPin size={14} /> See Location
                 </button>
               </motion.div>
-            ))}
+            )})}
           </div>
         )
       ) : (
@@ -442,7 +453,7 @@ export default function ExploreRooms() {
               ) : (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {group.rooms.map((room) => (
-                    <RoomCard key={room.id} room={room} group={group} onApply={handleApply} />
+                    <RoomCard key={room.id} room={room} group={group} onApply={handleApply} tenants={tenants} />
                   ))}
                 </div>
               )}

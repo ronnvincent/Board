@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, CreditCard, Building2, CheckCircle2, AlertCircle, Smartphone } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
+import { useRealtimeData } from "../../hooks/useRealtimeData";
 
 export default function CheckoutModal({ 
   isOpen, 
@@ -21,6 +22,8 @@ export default function CheckoutModal({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const { data: tenants } = useRealtimeData("tenants");
+
   // Mock form state
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -28,6 +31,12 @@ export default function CheckoutModal({
   const [gcashNumber, setGcashNumber] = useState("");
 
   if (!isOpen || !room) return null;
+
+  // Check current occupancy for this room
+  const maxOccupants = room.max_occupants || 1;
+  const currentOccupants = tenants.filter((t: any) => t.room_id === room.id).length;
+  const isFull = currentOccupants >= maxOccupants;
+  const alreadyApplied = tenants.some((t: any) => t.room_id === room.id && t.profile_id === user?.id);
 
   const handleClose = () => {
     // Reset state on close
@@ -42,21 +51,51 @@ export default function CheckoutModal({
     setIsSubmitting(true);
     setErrorMsg(null);
 
+    // Check if user already applied
+    if (alreadyApplied) {
+      setErrorMsg("You have already applied for this room.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Re-check occupancy in real time before proceeding
+    const { data: freshTenants, error: fetchError } = await supabase
+      .from("tenants")
+      .select("id")
+      .eq("room_id", room.id);
+
+    if (fetchError) {
+      setErrorMsg("Could not verify room availability. Please try again.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if ((freshTenants?.length || 0) >= maxOccupants) {
+      setErrorMsg("This room is already full. Please choose another room.");
+      setIsSubmitting(false);
+      return;
+    }
+
     // Mock payment delay
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Attempt insert
+    // Insert tenant
     const { error } = await supabase.from("tenants").insert({
       name: user?.fullName || "Applicant",
       room_id: room.id,
       profile_id: user?.id,
-      rent_status: "Due" // Application submitted, awaiting approval
+      rent_status: "Due"
     });
 
     if (error) {
       setErrorMsg(error.message || "Failed to submit application.");
       setIsSubmitting(false);
     } else {
+      // Update room status to occupied if it has reached max capacity
+      const newOccupantCount = (freshTenants?.length || 0) + 1;
+      if (newOccupantCount >= maxOccupants) {
+        await supabase.from("rooms").update({ status: "occupied" }).eq("id", room.id);
+      }
       setIsSuccess(true);
       setIsSubmitting(false);
     }
@@ -253,10 +292,10 @@ export default function CheckoutModal({
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isFull || alreadyApplied}
                   className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? "Processing..." : `Pay ₱${(room.price || 0).toLocaleString()} & Apply`}
+                  {alreadyApplied ? "Already Applied" : isFull ? "Room is Full" : isSubmitting ? "Processing..." : `Pay ₱${(room.price || 0).toLocaleString()} & Apply`}
                 </button>
                 <p className="text-center text-[10px] text-muted-foreground flex items-center justify-center gap-1">
                   <CreditCard size={10} /> Payments are secure and encrypted.
