@@ -1838,6 +1838,8 @@ function MessagesSection({
 }) {
   const { data: allMessages } = useRealtimeData("messages", "created_at", true);
   const { data: profiles } = useRealtimeData("profiles");
+  const { data: tenants } = useRealtimeData("tenants");
+  const { data: rooms } = useRealtimeData("rooms");
   
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
