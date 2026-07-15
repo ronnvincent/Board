@@ -1229,8 +1229,8 @@ function SecurityGateSection() {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 max-w-5xl">
-      <div className="space-y-6">
+    <div className="grid gap-6 lg:grid-cols-2 max-w-5xl w-full">
+      <div className="space-y-6 min-w-0">
         <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Scanner</h3>
         
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm flex flex-col items-center">
@@ -1255,10 +1255,10 @@ function SecurityGateSection() {
             </div>
           )}
 
-          <div className="w-full max-w-sm">
+          <div className="w-full max-w-sm min-w-0">
             <p className="text-xs text-center text-muted-foreground mb-3 font-bold uppercase tracking-wider">Or verify manually</p>
-            <form onSubmit={handleScan} className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-1">
+            <form onSubmit={handleScan} className="flex flex-col sm:flex-row gap-2 w-full">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                 <input
                   type="text"
@@ -1280,7 +1280,7 @@ function SecurityGateSection() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 min-w-0">
         <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Verification Result</h3>
         
         {!lastScanned ? (
@@ -1309,15 +1309,15 @@ function SecurityGateSection() {
                 : "border-blue-200 bg-blue-50"
             }`}
           >
-            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-black/10">
-              <div className={`grid size-12 place-items-center rounded-2xl ${
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 pb-6 border-b border-black/10">
+              <div className={`grid size-12 shrink-0 place-items-center rounded-2xl ${
                 matchedVisitor.status === "approved" ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600"
               }`}>
                 {matchedVisitor.status === "approved" ? <CheckCircle2 size={24} /> : <ShieldCheck size={24} />}
               </div>
-              <div>
-                <h4 className="font-bold text-xl">{matchedVisitor.visitor_name}</h4>
-                <p className={`text-sm ${matchedVisitor.status === "approved" ? "text-emerald-700" : "text-blue-700"}`}>
+              <div className="min-w-0">
+                <h4 className="font-bold text-xl truncate">{matchedVisitor.visitor_name}</h4>
+                <p className={`text-sm truncate ${matchedVisitor.status === "approved" ? "text-emerald-700" : "text-blue-700"}`}>
                   {matchedVisitor.status === "approved" ? "Entry Approved" : "Valid Pass (Pending)"}
                 </p>
               </div>
@@ -1353,7 +1353,7 @@ function SecurityGateSection() {
         )}
       </div>
 
-      <div className="lg:col-span-2 mt-4 space-y-6">
+      <div className="lg:col-span-2 mt-4 space-y-6 min-w-0 w-full">
         <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight flex items-center gap-2">
           <Clock size={20} className="text-muted-foreground" />
           Approved Visitors History
