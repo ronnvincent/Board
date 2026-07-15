@@ -2389,7 +2389,7 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className={`flex items-center gap-3 ${selectedAdminId ? "hidden lg:flex" : "flex"}`}>
         <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
           <MessageSquareText size={20} />
         </div>
@@ -2399,9 +2399,16 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
         </div>
       </div>
 
-      <div className="flex rounded-2xl border border-border bg-card overflow-hidden" style={{ height: "calc(100vh - 220px)", minHeight: "400px" }}>
-        {/* Admin list */}
-        <div className="w-72 shrink-0 border-r border-border flex flex-col bg-muted/10">
+      <div
+        data-chat={selectedAdminId ? "true" : "false"}
+        className="flex min-w-0 rounded-2xl border border-border bg-card overflow-hidden h-[calc(100dvh-200px)] min-h-[320px] data-[chat=true]:h-[calc(100dvh-120px)] lg:data-[chat=true]:h-[calc(100dvh-200px)]"
+      >
+        {/* Admin list — full width on mobile, sidebar on desktop */}
+        <div
+          className={`${
+            selectedAdminId ? "hidden lg:flex" : "flex"
+          } w-full lg:w-72 shrink-0 border-r border-border flex-col bg-muted/10`}
+        >
           <div className="px-4 py-3 border-b border-border">
             <p className="text-[10px] font-['DM_Mono'] uppercase tracking-wider text-muted-foreground">
               Administrators ({adminProfiles.length})
@@ -2457,7 +2464,7 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
 
         {/* Chat area */}
         {selectedAdmin ? (
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-w-0 w-full">
             {/* Chat header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/10 shrink-0">
               <div className="flex items-center gap-3">
@@ -2556,7 +2563,7 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+          <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-muted-foreground bg-muted/5">
             <MessageSquareText size={48} className="mb-4 opacity-10" />
             <p className="font-medium">Select an administrator</p>
             <p className="text-xs mt-1">Choose who to report your concern to</p>
