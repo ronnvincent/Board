@@ -151,7 +151,7 @@ function OverviewSection() {
                 const assignedAdmin = admins.find(a => a.house_id === house.id);
                 const houseRooms = rooms.filter((r: any) => r.house_id === house.id);
                 const occupiedCount = houseRooms.filter((r: any) => r.status === "occupied").length;
-                const capacity = house.rooms || 0;
+                const capacity = houseRooms.length;
                 const occupancyPercent = capacity > 0 ? Math.round((occupiedCount / capacity) * 100) : 0;
 
                 return (
@@ -543,7 +543,7 @@ function HousesSection() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-lg bg-muted/50 p-2 text-center">
-                    <p className="text-lg font-bold">{house.rooms}</p>
+                    <p className="text-lg font-bold">{houseRooms.length}</p>
                     <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Rooms</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-2 text-center">
