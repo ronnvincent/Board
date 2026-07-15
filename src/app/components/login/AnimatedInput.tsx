@@ -26,8 +26,8 @@ export default function AnimatedInput({
         animate={error ? { x: [0, -6, 5, -4, 3, 0] } : {}}
         transition={{ duration: 0.4 }}
         className={`
-          relative flex items-center gap-3 rounded-xl border bg-card px-4 py-2
-          transition-all duration-300 ease-out min-h-[56px]
+          relative flex items-center gap-3 rounded-xl border bg-card px-4 py-2.5
+          transition-all duration-300 ease-out min-h-[58px]
           ${focused
             ? "border-primary shadow-[0_0_0_3px_rgba(31,81,73,0.10)]"
             : error
@@ -46,7 +46,7 @@ export default function AnimatedInput({
         </motion.span>
 
         {/* Input + floating label wrapper */}
-        <div className="relative flex-1 flex flex-col justify-center h-full pt-3">
+        <div className="relative flex-1 flex flex-col justify-center h-full pt-3.5">
           <input
             id={id}
             type={isPassword ? (showPassword ? "text" : "password") : rest.type}
@@ -68,8 +68,8 @@ export default function AnimatedInput({
           <label
             htmlFor={id}
             className="absolute left-0 top-1/2 -translate-y-1/2 origin-left cursor-text text-[15px] text-muted-foreground pointer-events-none select-none transition-all duration-200 ease-out z-10
-            peer-focus:-translate-y-[16px] peer-focus:scale-75 peer-focus:opacity-70
-            peer-[:not(:placeholder-shown)]:-translate-y-[16px] peer-[:not(:placeholder-shown)]:scale-75 peer-[:not(:placeholder-shown)]:opacity-70"
+            peer-focus:-translate-y-[24px] peer-focus:scale-75 peer-focus:opacity-70
+            peer-[:not(:placeholder-shown)]:-translate-y-[24px] peer-[:not(:placeholder-shown)]:scale-75 peer-[:not(:placeholder-shown)]:opacity-70"
           >
             {label}
           </label>
