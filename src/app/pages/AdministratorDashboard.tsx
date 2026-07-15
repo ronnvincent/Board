@@ -426,7 +426,21 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
     if (house) {
       await supabase.from("houses").update(payload).eq("id", house.id);
     } else {
-      await supabase.from("houses").insert(payload);
+      const { data: newHouse, error } = await supabase.from("houses").insert(payload).select().single();
+      
+      if (!error && newHouse) {
+        const capacity = payload.rooms;
+        if (capacity > 0) {
+          const roomInserts = Array.from({ length: capacity }).map((_, i) => ({
+            house_id: newHouse.id,
+            number: `${i + 101}`,
+            status: "vacant",
+            price: 5000,
+            features: ["Wi-Fi", "AC"]
+          }));
+          await supabase.from("rooms").insert(roomInserts);
+        }
+      }
     }
     setSaving(false);
     onClose();
