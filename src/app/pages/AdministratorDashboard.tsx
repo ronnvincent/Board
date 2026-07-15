@@ -108,6 +108,7 @@ function OverviewSection() {
   const { data: profiles } = useRealtimeData("profiles");
   const { data: rooms } = useRealtimeData("rooms");
   const { data: tenants } = useRealtimeData("tenants");
+  const [selectedHouseId, setSelectedHouseId] = useState<string | null>(null);
 
   const totalHouses = houses.length;
   const totalAdmins = admins.length;
@@ -117,6 +118,8 @@ function OverviewSection() {
   const monthlyRevenue = rooms
     .filter((r: any) => r.status === "occupied")
     .reduce((sum: number, room: any) => sum + (room.price || 0), 0);
+
+  const selectedHouse = houses.find((h: any) => h.id === selectedHouseId);
 
   return (
     <div className="space-y-8">
@@ -155,7 +158,10 @@ function OverviewSection() {
                 const occupancyPercent = capacity > 0 ? Math.round((occupiedCount / capacity) * 100) : 0;
 
                 return (
-                  <div key={house.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition">
+                  <div
+                    key={house.id}
+                    onClick={() => setSelectedHouseId(house.id)}
+                    className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                         <Building2 size={16} />
@@ -209,6 +215,142 @@ function OverviewSection() {
           </div>
         </motion.div>
       </div>
+
+      {/* Room Detail Modal */}
+      <AnimatePresence>
+        {selectedHouseId && selectedHouse && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+            onClick={() => setSelectedHouseId(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              {(() => {
+                const modalRooms = rooms.filter((r: any) => r.house_id === selectedHouseId);
+                const modalOccupied = modalRooms.filter((r: any) => r.status === "occupied").length;
+                return (
+                  <>
+                    <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
+                      <div className="flex items-center gap-3">
+                        <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                          <Building2 size={20} />
+                        </div>
+                        <div>
+                          <h3 className="font-['Libre_Baskerville'] text-lg font-bold">{selectedHouse.name}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {modalRooms.length} {modalRooms.length === 1 ? "room" : "rooms"} · {modalOccupied} occupied
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedHouseId(null)}
+                        className="rounded-full p-2 text-muted-foreground hover:bg-muted transition"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    {/* Modal Body */}
+                    <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                      {modalRooms.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-border p-12 text-center">
+                          <BedDouble size={32} className="mx-auto mb-3 text-muted-foreground/30" />
+                          <p className="text-sm font-medium">No rooms in this house</p>
+                          <p className="text-xs text-muted-foreground mt-1">Go to the Houses tab to create rooms.</p>
+                        </div>
+                      ) : (
+                        modalRooms
+                          .sort((a: any, b: any) => a.number.localeCompare(b.number, undefined, { numeric: true }))
+                          .map((room: any) => {
+                            const roomTenants = (tenants as any[]).filter((t: any) => t.room_id === room.id);
+                            const maxOccupants = room.max_occupants || 1;
+                            const isOccupied = room.status === "occupied";
+
+                            return (
+                              <div key={room.id} className="rounded-xl border border-border bg-background overflow-hidden">
+                                {/* Room header */}
+                                <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b border-border">
+                                  <div className="flex items-center gap-3">
+                                    <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
+                                      <BedDouble size={15} />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-bold">Room {room.number}</p>
+                                      <p className="text-[10px] text-muted-foreground font-['DM_Mono'] uppercase">
+                                        {roomTenants.length}/{maxOccupants} occupants
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    {room.price > 0 && (
+                                      <span className="text-xs font-semibold text-primary">₱{room.price.toLocaleString()}/mo</span>
+                                    )}
+                                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                                      isOccupied
+                                        ? "bg-red-50 text-red-600"
+                                        : "bg-emerald-50 text-emerald-600"
+                                    }`}>
+                                      {isOccupied ? "Occupied" : "Vacant"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Tenants list */}
+                                <div className="divide-y divide-border">
+                                  {roomTenants.length === 0 ? (
+                                    <div className="px-4 py-5 text-center text-sm text-muted-foreground">
+                                      No tenants in this room
+                                    </div>
+                                  ) : (
+                                    roomTenants.map((tenant: any) => {
+                                      const profile = profiles.find((p: any) => p.id === tenant.profile_id);
+                                      const moveIn = tenant.created_at ? new Date(tenant.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+                                      return (
+                                        <div key={tenant.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition">
+                                          <div className="flex items-center gap-3">
+                                            {profile?.avatar_url ? (
+                                              <img src={profile.avatar_url} alt="" className="size-9 rounded-full object-cover shrink-0" />
+                                            ) : (
+                                              <div className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary shrink-0">
+                                                <User size={14} />
+                                              </div>
+                                            )}
+                                            <div>
+                                              <p className="text-sm font-semibold">{tenant.name}</p>
+                                              <p className="text-[10px] text-muted-foreground">Moved in {moveIn}</p>
+                                            </div>
+                                          </div>
+                                          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                                            tenant.rent_status === "Paid"
+                                              ? "bg-emerald-50 text-emerald-600"
+                                              : "bg-amber-50 text-amber-600"
+                                          }`}>
+                                            {tenant.rent_status || "Due"}
+                                          </span>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
