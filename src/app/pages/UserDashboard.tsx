@@ -933,7 +933,19 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
 function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: any }) {
   const [activeTab, setActiveTab] = useState("personal");
   const [uploading, setUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    // Simulate save delay
+    setTimeout(() => {
+      setIsSaving(false);
+      setSuccessMsg("Changes saved successfully!");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    }, 800);
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
