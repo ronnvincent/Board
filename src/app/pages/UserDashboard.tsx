@@ -37,17 +37,7 @@ import MockPaymentGateway from "../components/shared/MockPaymentGateway";
 import { QRCodeSVG } from "qrcode.react";
 import EmojiPicker from 'emoji-picker-react';
 import { compressImageToBase64 } from "../../lib/imageUtils";
-import {
-  buildReceiptNumber,
-  formatCurrency,
-  getDueDateState,
-  isMaintenanceOpen,
-  isUrgentNotice,
-  maintenanceStatusClass,
-  maintenanceStatusLabel,
-  normalizeMaintenanceStatus,
-  registerPushSubscription,
-} from "../lib/tenantPortal";
+
 
 const navItems: NavItem[] = [
   { label: "My Home", icon: <LayoutDashboard size={18} />, id: "dashboard" },
@@ -1183,6 +1173,8 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
   const { data: notices } = useRealtimeData("notices");
   const { data: marketplace } = useRealtimeData("marketplace_items");
   const { data: profiles } = useRealtimeData("profiles");
+  const { data: tenants } = useRealtimeData("tenants");
+  const { data: rooms } = useRealtimeData("rooms");
 
   const [newItem, setNewItem] = useState("");
   const [newPrice, setNewPrice] = useState("");
@@ -1267,13 +1259,28 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
         <div className="grid gap-3">
           {marketplace.map((item) => {
             const seller = profiles.find((p: any) => p.id === item.profile_id);
+            const sellerTenant = tenants.find((t: any) => t.profile_id === seller?.id);
+            const sellerRoom = rooms.find((r: any) => r.id === sellerTenant?.room_id);
             return (
-            <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
-              <div>
-                <p className="font-bold">{item.item_name}</p>
-                <p className="text-xs text-muted-foreground">Seller: {seller?.full_name || "Resident"} • Posted today</p>
+            <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4 gap-4">
+              <div className="flex items-center gap-3 overflow-hidden">
+                {seller?.avatar_url ? (
+                  <img src={seller.avatar_url} alt="Avatar" className="size-10 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="grid size-10 place-items-center rounded-full bg-primary/20 text-primary shrink-0">
+                    <User size={16} />
+                  </div>
+                )}
+                <div className="overflow-hidden">
+                  <p className="font-bold truncate">{item.item_name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Seller: {seller?.full_name || "Resident"} 
+                    {sellerRoom && ` • Room ${sellerRoom.number}`}
+                    {" • "}Posted today
+                  </p>
+                </div>
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <p className="font-bold text-primary">₱{item.price.toLocaleString()}</p>
                 {seller?.id !== profileId && (
                   <button onClick={() => onMessageSeller(seller?.id)} className="text-xs font-bold text-emerald-600 mt-1 hover:underline">Message Seller</button>
@@ -1891,22 +1898,6 @@ function MessagesSection({
       content: newMessage,
       related_maintenance_request_id: maintenanceContextId || null
     });
-    if (error) alert("Failed to send message: " + error.message);
-    else {
-      setNewMessage("");
-      setShowEmoji(false);
-    }
-    setSending(false);
-  };
-
-  return (
-    <div className="flex flex-col md:flex-row h-[75vh] md:h-[80vh] rounded-2xl border border-border bg-card overflow-hidden max-w-6xl">
-      <div className={`${activeChatUserId ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 border-b md:border-b-0 md:border-r border-border bg-muted/10 flex-col h-full`}>
-        <div className="p-4 border-b border-border">
-          <h3 className="font-['Libre_Baskerville'] font-bold text-lg tracking-tight">Conversations</h3>
-        </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {partners.length === 0 ? (
     if (error) alert("Failed to send message: " + error.message);
     else {
       setNewMessage("");
