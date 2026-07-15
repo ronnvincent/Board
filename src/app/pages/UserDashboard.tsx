@@ -20,7 +20,8 @@ import {
   X,
   Clock,
   Smile,
-  Paperclip
+  Paperclip,
+  ChevronLeft
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -998,8 +999,8 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
   };
 
   return (
-    <div className="flex h-[75vh] rounded-2xl border border-border bg-card overflow-hidden max-w-6xl">
-      <div className="w-1/3 border-r border-border bg-muted/10 flex flex-col">
+    <div className="flex flex-col md:flex-row h-[75vh] md:h-[80vh] rounded-2xl border border-border bg-card overflow-hidden max-w-6xl">
+      <div className={`${activeChatUserId ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 border-b md:border-b-0 md:border-r border-border bg-muted/10 flex-col h-full`}>
         <div className="p-4 border-b border-border">
           <h3 className="font-['Libre_Baskerville'] font-bold text-lg tracking-tight">Conversations</h3>
         </div>
@@ -1025,20 +1026,26 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col bg-background relative">
+      <div className={`${!activeChatUserId ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-background relative h-full`}>
         {activeChatUserId && activePartner ? (
           <>
-            <div className="p-4 border-b border-border flex items-center gap-3 bg-card z-10 shadow-sm">
-              <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
+            <div className="p-4 border-b border-border flex items-center gap-3 bg-card z-10 shadow-sm shrink-0">
+              <button 
+                onClick={() => setActiveChatUserId(null)}
+                className="md:hidden p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition shrink-0"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary shrink-0">
                 <User size={16} />
               </div>
-              <div>
-                <p className="font-bold">{activePartner.full_name}</p>
+              <div className="overflow-hidden">
+                <p className="font-bold truncate">{activePartner.full_name}</p>
                 <p className="text-xs text-muted-foreground">Tenant</p>
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 flex flex-col">
               {chatHistory.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
                   <MessageSquare size={32} className="mb-3 opacity-20" />
@@ -1065,7 +1072,7 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
               )}
             </div>
 
-            <div className="p-4 border-t border-border bg-card">
+            <div className="p-3 md:p-4 border-t border-border bg-card shrink-0">
               <div className="flex gap-2 relative items-center">
                 <div className="relative">
                   <button 
