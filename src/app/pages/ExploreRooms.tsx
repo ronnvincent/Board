@@ -117,6 +117,7 @@ export function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; 
 
 function RoomCard({ room, group, onApply }: { room: any, group: any, onApply: (room: any) => void }) {
   const [imgIndex, setImgIndex] = useState(0);
+  const [showGallery, setShowGallery] = useState(false);
 
   const features = room.features || ["AC", "Wi-Fi"];
   const hasAC = features.includes("AC") || features.includes("Air Conditioning");
@@ -150,7 +151,8 @@ function RoomCard({ room, group, onApply }: { room: any, group: any, onApply: (r
               transition={{ duration: 0.3 }}
               src={images[imgIndex]} 
               alt={`Room ${room.number} view ${imgIndex + 1}`} 
-              className="w-full h-full object-cover" 
+              className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-500" 
+              onClick={() => setShowGallery(true)}
             />
             {images.length > 1 && (
               <>
@@ -221,6 +223,57 @@ function RoomCard({ room, group, onApply }: { room: any, group: any, onApply: (r
           Apply Now <ArrowRight size={16} />
         </button>
       </div>
+
+      <AnimatePresence>
+        {showGallery && images.length > 0 && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-sm">
+            <button 
+              onClick={() => setShowGallery(false)}
+              className="absolute top-6 right-6 text-white/70 hover:text-white bg-black/40 rounded-full p-2 transition"
+            >
+              <X size={28} />
+            </button>
+            
+            <motion.img
+              key={imgIndex}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              src={images[imgIndex]}
+              alt={`Room Preview`}
+              className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl"
+            />
+
+            {images.length > 1 && (
+              <>
+                <button 
+                  onClick={prevImg} 
+                  className="absolute left-4 md:left-12 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition"
+                >
+                  <ChevronLeft size={32} />
+                </button>
+                <button 
+                  onClick={nextImg} 
+                  className="absolute right-4 md:right-12 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition"
+                >
+                  <ChevronRight size={32} />
+                </button>
+              </>
+            )}
+
+            <div className="absolute bottom-6 inset-x-0 flex justify-center gap-2">
+              {images.map((_: any, i: number) => (
+                <button 
+                  key={i} 
+                  onClick={() => setImgIndex(i)}
+                  className={`h-2 rounded-full transition-all ${i === imgIndex ? "w-6 bg-white" : "w-2 bg-white/40 hover:bg-white/60"}`} 
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
