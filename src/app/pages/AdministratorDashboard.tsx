@@ -27,7 +27,9 @@ import {
   CheckCircle2,
   XCircle,
   Megaphone,
-  Clock
+  Clock,
+  Wrench,
+  MessageSquare
 } from "lucide-react";
 import { useEffect } from "react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
@@ -36,6 +38,7 @@ import RoleBadge from "../components/dashboard/RoleBadge";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={18} />, id: "dashboard" },
+  { label: "Maintenance", icon: <Wrench size={18} />, id: "maintenance" },
   { label: "Announcements", icon: <Megaphone size={18} />, id: "announcements" },
   { label: "Security Gate", icon: <ShieldCheck size={18} />, id: "security" },
   { label: "Admissions", icon: <Activity size={18} />, id: "admissions" },
@@ -84,6 +87,7 @@ export default function AdministratorDashboard() {
       pageTitle={navItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
     >
       {activeNav === "dashboard" && <OverviewSection />}
+      {activeNav === "maintenance" && <MaintenanceSection />}
       {activeNav === "announcements" && <AnnouncementsSection />}
       {activeNav === "security" && <SecurityGateSection />}
       {activeNav === "admissions" && <AdmissionsSection />}
@@ -1521,6 +1525,138 @@ function AnnouncementsSection() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MaintenanceSection() {
+  const { data: requests, loading } = useRealtimeData("maintenance_requests", "created_at", false);
+  const { data: rooms } = useRealtimeData("rooms");
+  const { data: tenants } = useRealtimeData("tenants");
+  const { data: profiles } = useRealtimeData("profiles");
+  const { data: houses } = useRealtimeData("houses");
+  const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
+  const [updating, setUpdating] = useState<string | null>(null);
+
+  const handleUpdate = async (reqId: string, newStatus: string) => {
+    setUpdating(reqId);
+    const text = replyText[reqId] || "";
+    const updateData: any = { status: newStatus };
+    if (text.trim()) updateData.admin_reply = text;
+
+    const { error } = await supabase.from("maintenance_requests").update(updateData).eq("id", reqId);
+    if (error) alert("Failed to update request: " + error.message);
+    else {
+      setReplyText(prev => {
+        const next = { ...prev };
+        delete next[reqId];
+        return next;
+      });
+    }
+    setUpdating(null);
+  };
+
+  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading maintenance requests...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">Maintenance Requests</h2>
+          <p className="text-sm text-muted-foreground mt-1">Manage and reply to tenant repair requests.</p>
+        </div>
+      </div>
+
+      <div className="grid gap-4">
+        {requests.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+            <p className="text-muted-foreground font-medium">No maintenance requests found.</p>
+          </div>
+        ) : (
+          requests.map((req: any) => {
+            const tenant = tenants.find((t: any) => t.id === req.tenant_id);
+            const profile = profiles.find((p: any) => p.id === tenant?.profile_id);
+            const room = rooms.find((r: any) => r.id === req.room_id);
+            const house = houses.find((h: any) => h.id === room?.house_id);
+
+            return (
+              <motion.div
+                key={req.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-border bg-card overflow-hidden"
+              >
+                <div className="border-b border-border p-5 flex flex-wrap gap-4 items-start justify-between bg-muted/20">
+                  <div>
+                    <h3 className="font-bold text-lg mb-1">{req.subject || req.description}</h3>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1 font-medium text-foreground"><User size={14}/> {profile?.full_name || "Unknown"}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1"><BedDouble size={14}/> Room {room?.number}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1"><Building2 size={14}/> {house?.name}</span>
+                      <span>•</span>
+                      <span className="font-mono text-xs">{new Date(req.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
+                    req.status === "done" || req.status === "Done" ? "bg-emerald-100 text-emerald-700" :
+                    req.status === "in-progress" || req.status === "In Progress" ? "bg-blue-100 text-blue-700" :
+                    "bg-amber-100 text-amber-700"
+                  }`}>
+                    {req.status || "Open"}
+                  </span>
+                </div>
+                
+                <div className="p-5">
+                  <div className="mb-6 p-4 rounded-xl bg-muted/40 border border-border/50">
+                    <p className="text-sm font-medium mb-2 text-muted-foreground uppercase text-[10px] tracking-wider font-mono">Original Description</p>
+                    <p className="text-sm">{req.description}</p>
+                  </div>
+
+                  {req.admin_reply && (
+                    <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
+                      <p className="text-sm font-medium mb-2 text-primary uppercase text-[10px] tracking-wider font-mono flex items-center gap-1">
+                        <MessageSquare size={12}/> Admin Reply
+                      </p>
+                      <p className="text-sm">{req.admin_reply}</p>
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-border mt-4">
+                    <p className="text-sm font-semibold mb-3">Update & Reply</p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="text"
+                        placeholder="Type a reply to the tenant..."
+                        value={replyText[req.id] !== undefined ? replyText[req.id] : (req.admin_reply || "")}
+                        onChange={(e) => setReplyText({ ...replyText, [req.id]: e.target.value })}
+                        className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary transition"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleUpdate(req.id, "In Progress")}
+                          disabled={updating === req.id}
+                          className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100 transition whitespace-nowrap disabled:opacity-50"
+                        >
+                          Mark In Progress
+                        </button>
+                        <button
+                          onClick={() => handleUpdate(req.id, "Done")}
+                          disabled={updating === req.id}
+                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-100 transition whitespace-nowrap disabled:opacity-50"
+                        >
+                          Mark Done
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })
+        )}
       </div>
     </div>
   );

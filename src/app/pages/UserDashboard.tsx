@@ -479,22 +479,33 @@ function MaintenanceSection({ room, tenant }: { room: any, tenant: any }) {
           <div className="px-5 py-8 text-center text-sm text-muted-foreground">You have no maintenance requests.</div>
         ) : (
           myRequests.map((req: any) => (
-            <div key={req.id} className="flex items-center justify-between px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className={`grid size-8 place-items-center rounded-lg ${
-                  req.status === "done" ? "bg-emerald-100 text-emerald-600" : "bg-amber-50 text-amber-600"
-                }`}>
-                  {req.status === "done" ? <CheckCircle2 size={15} /> : <Clock size={15} />}
+            <div key={req.id} className="flex flex-col px-5 py-4 gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`grid size-8 place-items-center rounded-lg ${
+                    req.status === "Done" || req.status === "done" ? "bg-emerald-100 text-emerald-600" : "bg-amber-50 text-amber-600"
+                  }`}>
+                    {req.status === "Done" || req.status === "done" ? <CheckCircle2 size={15} /> : <Clock size={15} />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{req.subject || req.description}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(req.created_at || new Date()).toLocaleDateString()}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">{req.subject || req.description}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(req.created_at || new Date()).toLocaleDateString()}</p>
-                </div>
+                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase whitespace-nowrap ${
+                  req.status === "Done" || req.status === "done" ? "bg-emerald-100 text-emerald-700" : 
+                  req.status === "In Progress" || req.status === "in-progress" ? "bg-blue-100 text-blue-700" : "bg-amber-50 text-amber-600"
+                }`}>{req.status || "Open"}</span>
               </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase ${
-                req.status === "done" ? "bg-emerald-100 text-emerald-700" : 
-                req.status === "in-progress" ? "bg-blue-100 text-blue-700" : "bg-amber-50 text-amber-600"
-              }`}>{req.status}</span>
+              
+              {req.admin_reply && (
+                <div className="ml-11 p-3 rounded-xl bg-primary/5 border border-primary/10">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1 flex items-center gap-1">
+                    <MessageSquare size={12}/> Admin Reply
+                  </p>
+                  <p className="text-sm text-foreground/80">{req.admin_reply}</p>
+                </div>
+              )}
             </div>
           ))
         )}
