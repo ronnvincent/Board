@@ -25,7 +25,8 @@ import {
   Smile,
   Paperclip,
   ChevronLeft,
-  CheckCheck
+  CheckCheck,
+  Trash2
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -1207,22 +1208,22 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 max-w-5xl">
+    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 max-w-5xl">
       {/* Notice Board */}
-      <div className="space-y-4">
+      <div className="space-y-4 min-w-0">
         <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">House Notices</h3>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           {notices.length === 0 ? (
-            <div className="p-12 text-center">
+            <div className="p-8 sm:p-12 text-center">
               <Megaphone size={24} className="text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground">No Announcements</p>
             </div>
           ) : (
             <div className="divide-y divide-border">
               {notices.map((notice) => (
-                <div key={notice.id} className="p-5">
-                  <h4 className="font-bold">{notice.title}</h4>
-                  <p className="text-sm text-muted-foreground mt-1">{notice.content}</p>
+                <div key={notice.id} className="p-4 sm:p-5">
+                  <h4 className="font-bold text-sm sm:text-base">{notice.title}</h4>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">{notice.content}</p>
                 </div>
               ))}
             </div>
@@ -1231,17 +1232,17 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
       </div>
 
       {/* Marketplace */}
-      <div className="space-y-4">
+      <div className="space-y-4 min-w-0">
         <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Marketplace</h3>
-        <div className="rounded-2xl border border-border bg-card p-5 mb-4">
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 mb-4">
           <p className="text-sm font-bold mb-3">Sell an Item</p>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col gap-2">
             <input
               type="text"
               placeholder="What are you selling?"
               value={newItem}
               onChange={(e) => setNewItem(e.target.value)}
-              className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
             <div className="flex gap-2">
               <input
@@ -1249,12 +1250,12 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
                 placeholder="Price (₱)"
                 value={newPrice}
                 onChange={(e) => setNewPrice(e.target.value)}
-                className="w-full sm:w-24 rounded-xl border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+                className="flex-1 min-w-0 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <button
                 onClick={handlePostItem}
                 disabled={isPosting}
-                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39] disabled:opacity-50"
+                className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] disabled:opacity-50 shrink-0"
               >
                 {isPosting ? "..." : "Post"}
               </button>
@@ -1268,34 +1269,33 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
             const sellerTenant = tenants.find((t: any) => t.profile_id === seller?.id);
             const sellerRoom = rooms.find((r: any) => r.id === sellerTenant?.room_id);
             return (
-            <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4 gap-4">
-              <div className="flex items-center gap-3 overflow-hidden">
+            <div key={item.id} className="flex flex-col xs:flex-row xs:items-center justify-between rounded-xl border border-border bg-card p-3 sm:p-4 gap-3">
+              <div className="flex items-center gap-3 min-w-0 overflow-hidden">
                 {seller?.avatar_url ? (
-                  <img src={seller.avatar_url} alt="Avatar" className="size-10 rounded-full object-cover shrink-0" />
+                  <img src={seller.avatar_url} alt="Avatar" className="size-9 sm:size-10 rounded-full object-cover shrink-0" />
                 ) : (
-                  <div className="grid size-10 place-items-center rounded-full bg-primary/20 text-primary shrink-0">
+                  <div className="grid size-9 sm:size-10 place-items-center rounded-full bg-primary/20 text-primary shrink-0">
                     <User size={16} />
                   </div>
                 )}
-                <div className="overflow-hidden">
-                  <p className="font-bold truncate">{item.item_name}</p>
+                <div className="min-w-0 overflow-hidden">
+                  <p className="font-bold text-sm truncate">{item.item_name}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    Seller: {seller?.full_name || "Resident"} 
-                    {sellerRoom && ` • Room ${sellerRoom.number}`}
-                    {" • "}Posted today
+                    {seller?.full_name || "Resident"} 
+                    {sellerRoom && ` • Rm ${sellerRoom.number}`}
                   </p>
                 </div>
               </div>
-              <div className="text-right shrink-0">
-                <p className="font-bold text-primary">₱{item.price.toLocaleString()}</p>
+              <div className="flex items-center justify-between xs:flex-col xs:items-end shrink-0 pl-12 xs:pl-0">
+                <p className="font-bold text-primary text-sm">₱{item.price.toLocaleString()}</p>
                 {seller?.id !== profileId && (
-                  <button onClick={() => onMessageSeller(seller?.id)} className="text-xs font-bold text-emerald-600 mt-1 hover:underline">Message Seller</button>
+                  <button onClick={() => onMessageSeller(seller?.id)} className="text-xs font-bold text-emerald-600 mt-0.5 hover:underline">Message</button>
                 )}
               </div>
             </div>
           )})}
           {marketplace.length === 0 && (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border p-6 sm:p-8 text-center text-sm text-muted-foreground">
               No items for sale right now.
             </div>
           )}
@@ -1850,6 +1850,7 @@ function MessagesSection({
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [deletingConvo, setDeletingConvo] = useState<string | null>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1878,6 +1879,29 @@ function MessagesSection({
   if (activeChatUserId && !partnerIds.includes(activeChatUserId)) {
     partnerIds.unshift(activeChatUserId);
   }
+
+  const handleDeleteConversation = async (partnerId: string) => {
+    if (!currentUserId) return;
+    const confirmed = window.confirm("Delete this entire conversation? This cannot be undone.");
+    if (!confirmed) return;
+    setDeletingConvo(partnerId);
+    const convoMessages = allMessages.filter(
+      (m: any) =>
+        (m.sender_id === currentUserId && m.receiver_id === partnerId) ||
+        (m.sender_id === partnerId && m.receiver_id === currentUserId)
+    );
+    const ids = convoMessages.map((m: any) => m.id);
+    if (ids.length > 0) {
+      const { error } = await supabase.from("messages").delete().in("id", ids);
+      if (error) {
+        alert("Failed to delete conversation: " + error.message);
+      }
+    }
+    if (activeChatUserId === partnerId) {
+      setActiveChatUserId(null);
+    }
+    setDeletingConvo(null);
+  };
 
   const partners = partnerIds.map(id => profiles.find((p: any) => p.id === id)).filter(Boolean);
   const activePartner = profiles.find((p: any) => p.id === activeChatUserId);
@@ -1930,11 +1954,15 @@ function MessagesSection({
             partners.map((p: any) => {
               const pTenant = tenants.find((t: any) => t.profile_id === p.id);
               const pRoom = rooms.find((r: any) => r.id === pTenant?.room_id);
+              const lastMsg = myMessages
+                .filter((m: any) => (m.sender_id === p.id && m.receiver_id === currentUserId) || (m.sender_id === currentUserId && m.receiver_id === p.id))
+                .sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+              const unreadCount = myMessages.filter((m: any) => m.sender_id === p.id && m.receiver_id === currentUserId && !m.is_read).length;
               return (
-                <button
+                <div
                   key={p.id}
+                  className={`group relative w-full flex items-center gap-3 p-3 rounded-xl transition cursor-pointer ${activeChatUserId === p.id ? "bg-primary/10 text-primary" : "hover:bg-muted/50"}`}
                   onClick={() => setActiveChatUserId(p.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition ${activeChatUserId === p.id ? "bg-primary/10 text-primary" : "hover:bg-muted/50"}`}
                 >
                   {p.avatar_url ? (
                     <img src={p.avatar_url} alt="Avatar" className="size-10 rounded-full object-cover shrink-0" />
@@ -1943,11 +1971,29 @@ function MessagesSection({
                       <User size={16} />
                     </div>
                   )}
-                  <div className="text-left overflow-hidden">
-                    <p className="font-bold text-sm truncate">{p.full_name}</p>
-                    {pRoom && <p className="text-xs text-muted-foreground truncate">Room {pRoom.number}</p>}
+                  <div className="text-left overflow-hidden flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-bold text-sm truncate">{p.full_name}</p>
+                      {unreadCount > 0 && (
+                        <span className="shrink-0 grid size-5 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">{unreadCount}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {lastMsg
+                        ? lastMsg.content.startsWith("data:image/") ? "📷 Image" : lastMsg.content.slice(0, 35) + (lastMsg.content.length > 35 ? "…" : "")
+                        : pRoom ? `Room ${pRoom.number}` : "Start chatting"
+                      }
+                    </p>
                   </div>
-                </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteConversation(p.id); }}
+                    disabled={deletingConvo === p.id}
+                    className="shrink-0 p-1.5 rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 transition-all disabled:opacity-50"
+                    title="Delete conversation"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               );
             })
           )}
@@ -1971,12 +2017,20 @@ function MessagesSection({
                   <User size={16} />
                 </div>
               )}
-              <div className="overflow-hidden">
+              <div className="overflow-hidden flex-1 min-w-0">
                 <p className="font-bold truncate">{activePartner.full_name}</p>
                 <p className="text-xs text-muted-foreground">
                   Tenant {activePartnerRoom && ` • Room ${activePartnerRoom.number}`}
                 </p>
               </div>
+              <button
+                onClick={() => handleDeleteConversation(activeChatUserId!)}
+                disabled={deletingConvo === activeChatUserId}
+                className="shrink-0 p-2 rounded-xl text-muted-foreground hover:bg-red-100 hover:text-red-600 transition disabled:opacity-50"
+                title="Delete conversation"
+              >
+                <Trash2 size={18} />
+              </button>
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 flex flex-col">
