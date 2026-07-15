@@ -75,7 +75,7 @@ export default function UserDashboard() {
         <UnassignedPlaceholder />
       )}
       
-      {activeNav === "profile" && <ProfilePlaceholder />}
+      {activeNav === "profile" && <ProfileSection user={user} tenant={myTenant} room={myRoom} />}
 
       {myTenant && (
         <>
@@ -930,12 +930,225 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
   );
 }
 
-function ProfilePlaceholder() {
+function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: any }) {
+  const [activeTab, setActiveTab] = useState("personal");
+  const [uploading, setUploading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: data.publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+      
+      setSuccessMsg("Profile picture updated successfully!");
+      setTimeout(() => setSuccessMsg(""), 3000);
+      
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      alert('Error uploading avatar! Please check if the "avatars" storage bucket exists and is public.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="grid size-16 place-items-center rounded-2xl bg-muted mb-4"><User size={24} className="text-muted-foreground" /></div>
-      <h3 className="text-lg font-bold">My Profile</h3>
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">Profile editing will be available in a future update.</p>
+    <div className="max-w-4xl mx-auto pb-12">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold">My Profile</h2>
+        <p className="text-muted-foreground">Manage your account settings and preferences.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-8">
+        {/* Sidebar Nav */}
+        <div className="flex flex-col gap-2">
+          <button 
+            onClick={() => setActiveTab("personal")}
+            className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "personal" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >
+            Personal Information
+          </button>
+          <button 
+            onClick={() => setActiveTab("emergency")}
+            className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "emergency" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >
+            Emergency Contact
+          </button>
+          <button 
+            onClick={() => setActiveTab("preferences")}
+            className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "preferences" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >
+            Preferences
+          </button>
+          <button 
+            onClick={() => setActiveTab("security")}
+            className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "security" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >
+            Security
+          </button>
+        </div>
+
+        {/* Content Area */}
+        <div className="bg-card rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
+          {successMsg && (
+            <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3 text-emerald-800">
+              <CheckCircle2 size={18} />
+              <p className="text-sm font-medium">{successMsg}</p>
+            </div>
+          )}
+
+          <div>
+            {activeTab === "personal" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div>
+                  <h3 className="text-lg font-bold mb-4">Profile Picture</h3>
+                  <div className="flex items-center gap-6">
+                    <div className="grid size-20 place-items-center rounded-full bg-muted border border-border overflow-hidden">
+                      {user?.avatar_url ? (
+                        <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <User size={32} className="text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className={`inline-block px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg transition ${uploading ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-primary/90"}`}>
+                        {uploading ? "Uploading..." : "Upload New"}
+                        <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handleAvatarUpload} />
+                      </label>
+                      <p className="text-xs text-muted-foreground">JPG, GIF or PNG. Max size of 5MB.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold pt-4 border-t border-border">Basic Details</h3>
+                  <p className="text-xs text-muted-foreground -mt-2 mb-2">Note: These fields are read-only.</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">First Name</label>
+                      <input type="text" defaultValue={user?.fullName?.split(" ")[0] || ""} className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">Last Name</label>
+                      <input type="text" defaultValue={user?.fullName?.split(" ")[1] || ""} className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Email Address</label>
+                    <input type="email" defaultValue={user?.email || ""} className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
+                    <input type="tel" defaultValue="+1 (555) 000-0000" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "emergency" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <h3 className="text-lg font-bold">Emergency Contact</h3>
+                <p className="text-sm text-muted-foreground -mt-4 mb-4">Read-only information.</p>
+                
+                <div className="space-y-4 opacity-80">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Contact Name</label>
+                    <input type="text" placeholder="Jane Doe" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">Relationship</label>
+                      <input type="text" placeholder="Mother, Spouse, etc." className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
+                      <input type="tel" placeholder="+1 (555) 000-0000" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "preferences" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <h3 className="text-lg font-bold">Notification Preferences</h3>
+                <p className="text-sm text-muted-foreground -mt-4 mb-4">Currently disabled.</p>
+                
+                <div className="space-y-4 opacity-80">
+                  {[
+                    { title: "Rent Reminders", desc: "Get notified when rent is due or overdue." },
+                    { title: "Maintenance Updates", desc: "Receive updates on your maintenance requests." },
+                    { title: "House Announcements", desc: "Stay informed about general house news." },
+                    { title: "Visitor Approvals", desc: "Get alerts when your visitor pass is approved." },
+                  ].map((item, i) => (
+                    <label key={i} className="flex items-start gap-3 p-4 rounded-xl border border-border bg-muted/30 cursor-not-allowed transition">
+                      <input type="checkbox" defaultChecked disabled className="mt-1 w-4 h-4 rounded text-primary focus:ring-primary cursor-not-allowed" />
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{item.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "security" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <h3 className="text-lg font-bold">Security</h3>
+                <p className="text-sm text-muted-foreground -mt-4 mb-4">Contact admin to change your password.</p>
+                
+                <div className="space-y-4 opacity-80">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Current Password</label>
+                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">New Password</label>
+                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Confirm New Password</label>
+                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 pt-6 border-t border-border flex items-center justify-between">
+              {room ? (
+                <div className="hidden sm:block">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Lease</p>
+                  <p className="text-sm font-bold mt-0.5">Room {room.room_number}</p>
+                </div>
+              ) : <div />}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
