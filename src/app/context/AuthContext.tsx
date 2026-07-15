@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Safely stringify Error objects
     try {
       const str = JSON.stringify(err, Object.getOwnPropertyNames(err));
-      if (str === "{}" || !str) return String(err);
+      if (str === "{}" || !str) return "An error occurred. Please try again or ensure your credentials are correct.";
       return str;
     } catch {
       return String(err);
