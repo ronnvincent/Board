@@ -2,7 +2,7 @@ import { useState, useId, type InputHTMLAttributes, type ReactNode } from "react
 import { motion, AnimatePresence } from "motion/react";
 import { Eye, EyeOff } from "lucide-react";
 
-interface AnimatedInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "id"> {
+interface AnimatedInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "placeholder"> {
   label: string;
   icon: ReactNode;
   error?: string;
@@ -14,23 +14,11 @@ export default function AnimatedInput({
   icon,
   error,
   isPassword = false,
-  value,
-  onChange,
   ...rest
 }: AnimatedInputProps) {
   const id = useId();
   const [focused, setFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [internalValue, setInternalValue] = useState("");
-
-  const currentValue = value !== undefined ? String(value) : internalValue;
-  const hasContent = currentValue.length > 0;
-  const isFloating = focused || hasContent;
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (onChange) onChange(e);
-    else setInternalValue(e.target.value);
-  };
 
   return (
     <div className="space-y-1.5">
@@ -38,8 +26,8 @@ export default function AnimatedInput({
         animate={error ? { x: [0, -6, 5, -4, 3, 0] } : {}}
         transition={{ duration: 0.4 }}
         className={`
-          relative flex items-center gap-3 rounded-xl border bg-card px-4 py-3.5
-          transition-all duration-300 ease-out
+          relative flex items-center gap-3 rounded-xl border bg-card px-4 py-2
+          transition-all duration-300 ease-out min-h-[56px]
           ${focused
             ? "border-primary shadow-[0_0_0_3px_rgba(31,81,73,0.10)]"
             : error
@@ -58,37 +46,33 @@ export default function AnimatedInput({
         </motion.span>
 
         {/* Input + floating label wrapper */}
-        <div className="relative flex-1 min-h-[24px]">
-          {/* Floating label */}
-          <motion.label
-            htmlFor={id}
-            initial={false}
-            animate={{
-              y: isFloating ? -10 : 0,
-              scale: isFloating ? 0.75 : 1,
-              opacity: isFloating ? 0.7 : 0.55,
-            }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="absolute left-0 origin-left cursor-text text-[15px] text-muted-foreground pointer-events-none select-none"
-            style={{ top: "50%", transform: "translateY(-50%)" }}
-          >
-            {label}
-          </motion.label>
-
+        <div className="relative flex-1 flex flex-col justify-center h-full pt-3">
           <input
             id={id}
             type={isPassword ? (showPassword ? "text" : "password") : rest.type}
-            value={currentValue}
-            onChange={handleChange}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            placeholder=" " /* Crucial for CSS floating label to work */
+            onFocus={(e) => {
+              setFocused(true);
+              rest.onFocus?.(e);
+            }}
+            onBlur={(e) => {
+              setFocused(false);
+              rest.onBlur?.(e);
+            }}
             className={`
-              w-full border-0 bg-transparent p-0 text-[15px] outline-none
+              peer w-full border-0 bg-transparent p-0 text-[15px] outline-none
               transition-all duration-200
-              ${isFloating ? "translate-y-[3px]" : ""}
             `}
             {...rest}
           />
+          <label
+            htmlFor={id}
+            className="absolute left-0 top-1/2 -translate-y-1/2 origin-left cursor-text text-[15px] text-muted-foreground pointer-events-none select-none transition-all duration-200 ease-out z-10
+            peer-focus:-translate-y-[16px] peer-focus:scale-75 peer-focus:opacity-70
+            peer-[:not(:placeholder-shown)]:-translate-y-[16px] peer-[:not(:placeholder-shown)]:scale-75 peer-[:not(:placeholder-shown)]:opacity-70"
+          >
+            {label}
+          </label>
         </div>
 
         {/* Password toggle */}
