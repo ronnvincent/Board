@@ -4,6 +4,7 @@ import {
   Building2,
   Home,
   LayoutDashboard,
+  BedDouble,
   Settings,
   Shield,
   ShieldCheck,
