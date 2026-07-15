@@ -25,7 +25,8 @@ import {
   CreditCard,
   Search,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Megaphone
 } from "lucide-react";
 import { useEffect } from "react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
@@ -34,6 +35,7 @@ import RoleBadge from "../components/dashboard/RoleBadge";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={18} />, id: "dashboard" },
+  { label: "Announcements", icon: <Megaphone size={18} />, id: "announcements" },
   { label: "Security Gate", icon: <ShieldCheck size={18} />, id: "security" },
   { label: "Admissions", icon: <Activity size={18} />, id: "admissions" },
   { label: "Admins", icon: <Shield size={18} />, id: "admins" },
@@ -80,6 +82,7 @@ export default function AdministratorDashboard() {
       pageTitle={navItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
     >
       {activeNav === "dashboard" && <OverviewSection />}
+      {activeNav === "announcements" && <AnnouncementsSection />}
       {activeNav === "security" && <SecurityGateSection />}
       {activeNav === "admissions" && <AdmissionsSection />}
       {activeNav === "admins" && <AdminsSection />}
@@ -1246,6 +1249,109 @@ function SecurityGateSection() {
             )}
           </motion.div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function AnnouncementsSection() {
+  const { data: notices } = useRealtimeData("notices", "created_at", false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [isPosting, setIsPosting] = useState(false);
+
+  const handlePost = async () => {
+    if (!title.trim() || !content.trim()) return;
+    setIsPosting(true);
+    const { error } = await supabase.from("notices").insert({
+      title,
+      content
+    });
+
+    if (error) {
+      alert("Failed to post announcement: " + error.message);
+    } else {
+      setTitle("");
+      setContent("");
+    }
+    setIsPosting(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this announcement?")) return;
+    const { error } = await supabase.from("notices").delete().eq("id", id);
+    if (error) alert("Failed to delete: " + error.message);
+  };
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2 max-w-6xl">
+      <div className="space-y-6">
+        <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Post Announcement</h3>
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+          <p className="text-sm text-muted-foreground mb-6">
+            Broadcast a notice to all tenants. It will appear on their Dashboard Community tab.
+          </p>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1">Notice Title</label>
+              <input
+                type="text"
+                placeholder="e.g. Water Interruption"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1">Message Content</label>
+              <textarea
+                placeholder="Provide the details here..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={4}
+                className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition resize-none"
+              />
+            </div>
+            <button
+              onClick={handlePost}
+              disabled={!title.trim() || !content.trim() || isPosting}
+              className="rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50 mt-2"
+            >
+              {isPosting ? "Posting..." : "Broadcast Notice"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Active Announcements</h3>
+        
+        <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
+          {notices.length === 0 ? (
+            <div className="p-12 text-center">
+              <Megaphone size={32} className="mx-auto mb-4 text-muted-foreground/30" />
+              <p className="text-sm font-medium text-foreground">No active announcements</p>
+              <p className="text-xs text-muted-foreground mt-1">When you post a notice, it will appear here.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {notices.map((notice: any) => (
+                <div key={notice.id} className="p-6 hover:bg-muted/30 transition relative group">
+                  <button 
+                    onClick={() => handleDelete(notice.id)}
+                    className="absolute top-6 right-6 p-2 rounded-full text-red-500 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition"
+                    title="Delete notice"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <h4 className="font-bold text-lg pr-12">{notice.title}</h4>
+                  <p className="text-xs text-muted-foreground mb-3">{new Date(notice.created_at).toLocaleString()}</p>
+                  <p className="text-sm text-foreground/80">{notice.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
