@@ -188,10 +188,16 @@ function AdminsSection() {
     setModalOpen(true);
   };
 
+  const [adminToDelete, setAdminToDelete] = useState<any>(null);
+
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to revoke this admin's access? This will permanently delete their account.")) {
-      await supabase.from("admins").delete().eq("id", id);
-    }
+    setAdminToDelete(admins.find((admin: any) => admin.id === id) || null);
+  };
+
+  const confirmDeleteAdmin = async () => {
+    if (!adminToDelete) return;
+    await supabase.from("admins").delete().eq("id", adminToDelete.id);
+    setAdminToDelete(null);
   };
 
   return (
@@ -256,6 +262,19 @@ function AdminsSection() {
         admin={adminToEdit} 
         houses={houses} 
       />
+
+      {adminToDelete && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h3 className="text-lg font-bold">Revoke Admin Access</h3>
+            <p className="mt-2 text-sm text-muted-foreground">This will permanently delete the selected admin account.</p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setAdminToDelete(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
+              <button type="button" onClick={confirmDeleteAdmin} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">Delete</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
@@ -346,10 +365,16 @@ function HousesSection() {
     setModalOpen(true);
   };
 
+  const [houseToDelete, setHouseToDelete] = useState<any>(null);
+
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this property? This cannot be undone.")) {
-      await supabase.from("houses").delete().eq("id", id);
-    }
+    setHouseToDelete(houses.find((house: any) => house.id === id) || null);
+  };
+
+  const confirmDeleteHouse = async () => {
+    if (!houseToDelete) return;
+    await supabase.from("houses").delete().eq("id", houseToDelete.id);
+    setHouseToDelete(null);
   };
 
   return (
@@ -437,6 +462,19 @@ function HousesSection() {
         onClose={() => setModalOpen(false)} 
         house={houseToEdit} 
       />
+
+      {houseToDelete && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h3 className="text-lg font-bold">Delete Boarding House</h3>
+            <p className="mt-2 text-sm text-muted-foreground">This action cannot be undone and will remove the selected property.</p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setHouseToDelete(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
+              <button type="button" onClick={confirmDeleteHouse} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">Delete</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
@@ -561,10 +599,16 @@ function UsersSection() {
     }
   };
 
+  const [userToDelete, setUserToDelete] = useState<any>(null);
+
   const handleDeleteUser = async (userId: string) => {
-    if (confirm("Are you sure you want to permanently delete this user?")) {
-      await supabase.from("profiles").delete().eq("id", userId);
-    }
+    setUserToDelete(profiles.find((profile: any) => profile.id === userId) || null);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    await supabase.from("profiles").delete().eq("id", userToDelete.id);
+    setUserToDelete(null);
   };
 
   return (
@@ -633,6 +677,19 @@ function UsersSection() {
           </table>
         </div>
       </div>
+
+      {userToDelete && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h3 className="text-lg font-bold">Delete User</h3>
+            <p className="mt-2 text-sm text-muted-foreground">This will permanently delete the selected account from the platform.</p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setUserToDelete(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
+              <button type="button" onClick={confirmDeleteUser} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">Delete</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

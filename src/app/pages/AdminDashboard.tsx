@@ -16,6 +16,9 @@ import {
   AlertCircle,
   MoreHorizontal,
   X,
+  MessageSquareText,
+  BedDouble,
+  KeyRound,
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -48,6 +51,7 @@ export default function AdminDashboard() {
       {activeNav === "staff" && <StaffSection />}
       {activeNav === "maintenance" && <MaintenanceSection />}
       {activeNav === "settings" && <SettingsPlaceholder />}
+      {activeNav === "dashboard" && <AdmissionsSection />}
     </DashboardLayout>
   );
 }
@@ -55,10 +59,21 @@ export default function AdminDashboard() {
 function OverviewSection() {
   const { data: rooms, loading: loadingRooms } = useRealtimeData("rooms", "number", true);
   const { data: maintenance } = useRealtimeData("maintenance_requests");
+  const { data: houses } = useRealtimeData("houses");
+  const { data: tenants } = useRealtimeData("tenants");
 
   const occupied = rooms.filter((r) => r.status === "occupied").length;
   const total = rooms.length;
   const openTasks = maintenance.filter((m) => m.status !== "done").length;
+  const occupiedByHouse = houses.map((house: any) => {
+    const houseRooms = rooms.filter((room: any) => room.house_id === house.id);
+    const occupiedCount = houseRooms.filter((room: any) => room.status === "occupied").length;
+    return {
+      ...house,
+      roomCount: houseRooms.length,
+      occupiedCount,
+    };
+  });
 
   return (
     <div className="space-y-8">
@@ -70,51 +85,69 @@ function OverviewSection() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        {/* Room grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-2xl border border-border bg-card p-5"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold">Room Status</h3>
-            <div className="flex items-center gap-4 text-[10px] font-['DM_Mono'] uppercase tracking-[.08em] text-muted-foreground">
-              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-emerald-500" /> Occupied</span>
-              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-amber-400" /> Vacant</span>
-              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-red-400" /> Maintenance</span>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-bold">House & Room Overview</h3>
+              <span className="text-[10px] font-['DM_Mono'] uppercase tracking-[.12em] text-muted-foreground">Live snapshot</span>
             </div>
-          </div>
-          
-          {loadingRooms ? (
-            <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">Loading rooms...</div>
-          ) : rooms.length === 0 ? (
-            <div className="h-[200px] flex flex-col items-center justify-center text-center">
-              <p className="text-sm text-muted-foreground">No rooms yet.</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">Go to the Rooms tab to add one!</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-              {rooms.map((room) => (
-                <div
-                  key={room.id}
-                  className={`grid place-items-center rounded-xl aspect-square text-xs font-bold cursor-pointer transition-all hover:scale-105 ${
-                    room.status === "occupied"
-                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                      : room.status === "vacant"
-                        ? "bg-amber-50 text-amber-600 border border-amber-200"
-                        : "bg-red-50 text-red-500 border border-red-200"
-                  }`}
-                  title={`Room ${room.number} (${room.status})`}
-                >
-                  {room.number}
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {occupiedByHouse.map((house: any) => (
+                <div key={house.id} className="rounded-xl border border-border bg-background/70 p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">{house.name}</p>
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{house.occupiedCount}/{house.roomCount}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">Rooms: {house.roomCount} • Occupied: {house.occupiedCount}</p>
                 </div>
               ))}
             </div>
-          )}
-        </motion.div>
+          </div>
 
-        {/* Activity feed */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="rounded-2xl border border-border bg-card p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold">Room Status</h3>
+              <div className="flex items-center gap-4 text-[10px] font-['DM_Mono'] uppercase tracking-[.08em] text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-emerald-500" /> Occupied</span>
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-amber-400" /> Vacant</span>
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-red-400" /> Maintenance</span>
+              </div>
+            </div>
+            
+            {loadingRooms ? (
+              <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">Loading rooms...</div>
+            ) : rooms.length === 0 ? (
+              <div className="h-[200px] flex flex-col items-center justify-center text-center">
+                <p className="text-sm text-muted-foreground">No rooms yet.</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Go to the Rooms tab to add one!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                {rooms.map((room) => (
+                  <div
+                    key={room.id}
+                    className={`grid place-items-center rounded-xl aspect-square text-xs font-bold cursor-pointer transition-all hover:scale-105 ${
+                      room.status === "occupied"
+                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                        : room.status === "vacant"
+                          ? "bg-amber-50 text-amber-600 border border-amber-200"
+                          : "bg-red-50 text-red-500 border border-red-200"
+                    }`}
+                    title={`Room ${room.number} (${room.status})`}
+                  >
+                    {room.number}
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -130,6 +163,115 @@ function OverviewSection() {
           </div>
         </motion.div>
       </div>
+    </div>
+  );
+}
+
+function AdmissionsSection() {
+  const { data: tenants } = useRealtimeData("tenants");
+  const { data: rooms } = useRealtimeData("rooms");
+  const { data: houses } = useRealtimeData("houses");
+  const [activeTab, setActiveTab] = useState<"requests" | "approved">("requests");
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+
+  const pendingRequests = tenants.filter((tenant: any) => tenant.rent_status === "Due" && tenant.profile_id);
+  const approvedRequests = tenants.filter((tenant: any) => tenant.rent_status === "Paid" && tenant.profile_id);
+
+  const handleApprove = async (tenantId: string) => {
+    await supabase.from("tenants").update({ rent_status: "Paid" }).eq("id", tenantId);
+    setSelectedTenantId(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold">Admissions Queue</h3>
+            <p className="text-sm text-muted-foreground">Review room applications, assign rooms, and approve residents.</p>
+          </div>
+          <div className="flex rounded-full border border-border bg-background p-1">
+            <button onClick={() => setActiveTab("requests")} className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${activeTab === "requests" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Requests</button>
+            <button onClick={() => setActiveTab("approved")} className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${activeTab === "approved" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Approved</button>
+          </div>
+        </div>
+      </div>
+
+      {activeTab === "requests" ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {pendingRequests.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground lg:col-span-2">No admission requests pending.</div>
+          ) : pendingRequests.map((tenant: any) => {
+            const linkedRoom = rooms.find((room: any) => room.id === tenant.room_id);
+            const linkedHouse = houses.find((house: any) => house.id === linkedRoom?.house_id);
+            return (
+              <motion.div key={tenant.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold">{tenant.name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Admission request for {linkedRoom ? `Room ${linkedRoom.number}` : "an available space"}</p>
+                  </div>
+                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase text-amber-600">Pending</span>
+                </div>
+                <div className="mt-4 rounded-xl border border-border bg-background/70 p-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2"><MessageSquareText size={14} className="text-primary" /> Resident request received.</div>
+                  <div className="mt-2 flex items-center gap-2"><Home size={14} className="text-primary" /> {linkedHouse?.name || "House not assigned"}</div>
+                  <div className="mt-2 flex items-center gap-2"><BedDouble size={14} className="text-primary" /> {linkedRoom ? `Room ${linkedRoom.number}` : "No room assigned yet"}</div>
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button onClick={() => setSelectedTenantId(tenant.id)} className="rounded-xl border border-border bg-background px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Review</button>
+                  <button onClick={() => handleApprove(tenant.id)} className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-[#173f39]">Approve</button>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {approvedRequests.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground lg:col-span-2">No approved admissions yet.</div>
+          ) : approvedRequests.map((tenant: any) => {
+            const linkedRoom = rooms.find((room: any) => room.id === tenant.room_id);
+            const linkedHouse = houses.find((house: any) => house.id === linkedRoom?.house_id);
+            return (
+              <div key={tenant.id} className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold">{tenant.name}</p>
+                    <p className="text-xs text-muted-foreground">Approved resident</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-700">Approved</span>
+                </div>
+                <div className="mt-3 text-sm text-muted-foreground">
+                  <p>{linkedHouse?.name || "House"} · {linkedRoom ? `Room ${linkedRoom.number}` : "No room assigned"}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {selectedTenantId && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold">Admission Review</h3>
+                <p className="text-sm text-muted-foreground">Confirm the room and house details before approving.</p>
+              </div>
+              <button type="button" onClick={() => setSelectedTenantId(null)} className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"><X size={16} /></button>
+            </div>
+            <div className="mt-4 rounded-xl border border-border bg-background/70 p-4">
+              <p className="text-sm font-semibold">{tenants.find((tenant: any) => tenant.id === selectedTenantId)?.name}</p>
+              <p className="mt-2 text-sm text-muted-foreground">This resident is ready for admission. Assign a room and approve them from here.</p>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setSelectedTenantId(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Close</button>
+              <button onClick={() => handleApprove(selectedTenantId)} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-[#173f39]">Approve Admission</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
@@ -162,7 +304,7 @@ function RoomsSection() {
 
   const handleDeleteRoom = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to delete this room? All associated tenants will be unassigned.")) {
+    if (window.confirm("Are you sure you want to delete this room? All associated tenants will be unassigned.")) {
       await supabase.from("rooms").delete().eq("id", id);
     }
   };
@@ -349,7 +491,7 @@ function TenantsSection() {
   };
 
   const handleDeleteTenant = async (id: string) => {
-    if (confirm("Are you sure you want to remove this tenant?")) {
+    if (window.confirm("Are you sure you want to remove this tenant?")) {
       await supabase.from("tenants").delete().eq("id", id);
     }
   };
@@ -464,18 +606,22 @@ function StaffSection() {
   const { data: staff, loading } = useRealtimeData("staff", "name", true);
   const [adding, setAdding] = useState(false);
 
+  const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
+  const [staffName, setStaffName] = useState("");
+  const [staffRole, setStaffRole] = useState("Staff");
+
   const handleAddStaff = async () => {
+    if (!staffName.trim()) return;
     setAdding(true);
-    const staffName = prompt("Enter new staff member name:");
-    if (staffName) {
-      const role = prompt("Enter role (e.g. Maintenance, Cleaning):") || "Staff";
-      await supabase.from("staff").insert({ name: staffName, role: role, status: "active", tasks: 0 });
-    }
+    await supabase.from("staff").insert({ name: staffName.trim(), role: staffRole.trim() || "Staff", status: "active", tasks: 0 });
     setAdding(false);
+    setIsStaffModalOpen(false);
+    setStaffName("");
+    setStaffRole("Staff");
   };
 
   const handleDeleteStaff = async (id: string) => {
-    if (confirm("Are you sure you want to remove this staff member?")) {
+    if (window.confirm("Are you sure you want to remove this staff member?")) {
       await supabase.from("staff").delete().eq("id", id);
     }
   };
@@ -485,13 +631,41 @@ function StaffSection() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Manage house staff — maintenance workers and cleaning crew.</p>
         <button 
-          onClick={handleAddStaff}
+          onClick={() => setIsStaffModalOpen(true)}
           disabled={adding}
           className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition"
         >
           <UserPlus size={15} /> Add Staff
         </button>
       </div>
+
+      {isStaffModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Create Staff Member</h3>
+                <p className="text-sm text-muted-foreground">Add a staff profile with a role and status.</p>
+              </div>
+              <button type="button" onClick={() => setIsStaffModalOpen(false)} className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"><X size={16} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Name</label>
+                <input type="text" value={staffName} onChange={(e) => setStaffName(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Role</label>
+                <input type="text" value={staffRole} onChange={(e) => setStaffRole(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setIsStaffModalOpen(false)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
+              <button type="button" onClick={handleAddStaff} disabled={adding || !staffName.trim()} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-50">{adding ? "Saving..." : "Save Staff"}</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading staff...</p>
@@ -545,17 +719,24 @@ function MaintenanceSection() {
   const { data: maintenance, loading } = useRealtimeData("maintenance_requests", "created_at", false);
   const [adding, setAdding] = useState(false);
 
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [requestIssue, setRequestIssue] = useState("");
+  const [requestRoomId, setRequestRoomId] = useState("");
+  const { data: rooms } = useRealtimeData("rooms");
+
   const handleAddRequest = async () => {
+    if (!requestIssue.trim()) return;
     setAdding(true);
-    const issue = prompt("Describe the maintenance issue:");
-    if (issue) {
-      await supabase.from("maintenance_requests").insert({ 
-        issue, 
-        status: "pending",
-        date_reported: new Date().toLocaleDateString()
-      });
-    }
+    await supabase.from("maintenance_requests").insert({ 
+      issue: requestIssue.trim(),
+      room_id: requestRoomId || null,
+      status: "pending",
+      date_reported: new Date().toLocaleDateString()
+    });
     setAdding(false);
+    setIsRequestModalOpen(false);
+    setRequestIssue("");
+    setRequestRoomId("");
   };
 
   const handleUpdateStatus = async (id: string, currentStatus: string) => {
@@ -568,7 +749,7 @@ function MaintenanceSection() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Track and manage maintenance requests.</p>
         <button 
-          onClick={handleAddRequest}
+          onClick={() => setIsRequestModalOpen(true)}
           disabled={adding}
           className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition"
         >
@@ -576,6 +757,37 @@ function MaintenanceSection() {
         </button>
       </div>
       
+      {isRequestModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">New Maintenance Request</h3>
+                <p className="text-sm text-muted-foreground">Capture the issue and associate it with a room.</p>
+              </div>
+              <button type="button" onClick={() => setIsRequestModalOpen(false)} className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"><X size={16} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Issue</label>
+                <textarea value={requestIssue} onChange={(e) => setRequestIssue(e.target.value)} rows={4} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Room</label>
+                <select value={requestRoomId} onChange={(e) => setRequestRoomId(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
+                  <option value="">Unassigned</option>
+                  {rooms.map((room: any) => <option key={room.id} value={room.id}>Room {room.number}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setIsRequestModalOpen(false)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
+              <button type="button" onClick={handleAddRequest} disabled={adding || !requestIssue.trim()} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-50">{adding ? "Saving..." : "Save Request"}</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading maintenance requests...</p>
       ) : maintenance.length === 0 ? (
