@@ -74,7 +74,7 @@ export default function UserDashboard() {
           {activeNav === "dashboard" && <OverviewSection userName={user?.fullName ?? "Resident"} tenant={myTenant} room={myRoom} />}
           {activeNav === "room" && <RoomSection tenant={myTenant} room={myRoom} />}
           {activeNav === "rent" && <RentSection tenant={myTenant} />}
-          {activeNav === "maintenance" && <MaintenanceSection room={myRoom} />}
+          {activeNav === "maintenance" && <MaintenanceSection room={myRoom} tenant={myTenant} />}
           {activeNav === "community" && <CommunitySection profileId={user?.id} houseId={myRoom?.house_id} />}
           {activeNav === "visitors" && <VisitorsSection profileId={user?.id} />}
         </>
@@ -396,7 +396,7 @@ function RentSection({ tenant }: { tenant: any }) {
   );
 }
 
-function MaintenanceSection({ room }: { room: any }) {
+function MaintenanceSection({ room, tenant }: { room: any, tenant: any }) {
   const { data: requests, loading } = useRealtimeData("maintenance_requests", "created_at", false);
   const [newRequest, setNewRequest] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -409,6 +409,7 @@ function MaintenanceSection({ room }: { room: any }) {
     setSubmitting(true);
     const { error } = await supabase.from("maintenance_requests").insert({
       room_id: room.id,
+      tenant_id: tenant.id,
       description: newRequest
     });
     if (error) {
