@@ -37,7 +37,17 @@ import MockPaymentGateway from "../components/shared/MockPaymentGateway";
 import { QRCodeSVG } from "qrcode.react";
 import EmojiPicker from 'emoji-picker-react';
 import { compressImageToBase64 } from "../../lib/imageUtils";
-
+import {
+  buildReceiptNumber,
+  formatCurrency,
+  getDueDateState,
+  isMaintenanceOpen,
+  isUrgentNotice,
+  maintenanceStatusClass,
+  maintenanceStatusLabel,
+  normalizeMaintenanceStatus,
+  registerPushSubscription,
+} from "../lib/tenantPortal";
 
 const navItems: NavItem[] = [
   { label: "My Home", icon: <LayoutDashboard size={18} />, id: "dashboard" },
