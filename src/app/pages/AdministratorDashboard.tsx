@@ -52,6 +52,7 @@ const navItems: NavItem[] = [
 
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
+import { persistSettingsToStorage, SETTINGS_STORAGE_KEY } from "../context/SettingsContext";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -1206,9 +1207,40 @@ function SettingsPlaceholder() {
   };
 
   const [settings, setSettings] = useState(() => {
+    if (typeof window === "undefined") {
+      return defaultSettings;
+    }
+
     try {
-      const saved = localStorage.getItem("board_admin_settings");
-      return saved ? JSON.parse(saved) : defaultSettings;
+      const saved = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (!saved) {
+        return defaultSettings;
+      }
+
+      const parsed = JSON.parse(saved);
+      return {
+        platformName: parsed.platformName ?? parsed.platform_name ?? defaultSettings.platformName,
+        supportEmail: parsed.supportEmail ?? parsed.support_email ?? defaultSettings.supportEmail,
+        allowRegistration:
+          typeof parsed.allowRegistration === "boolean"
+            ? parsed.allowRegistration
+            : typeof parsed.allow_registration === "boolean"
+              ? parsed.allow_registration
+              : defaultSettings.allowRegistration,
+        maintenanceMode:
+          typeof parsed.maintenanceMode === "boolean"
+            ? parsed.maintenanceMode
+            : typeof parsed.maintenance_mode === "boolean"
+              ? parsed.maintenance_mode
+              : defaultSettings.maintenanceMode,
+        darkModeDefault:
+          typeof parsed.darkModeDefault === "boolean"
+            ? parsed.darkModeDefault
+            : typeof parsed.dark_mode_default === "boolean"
+              ? parsed.dark_mode_default
+              : defaultSettings.darkModeDefault,
+        themeColor: parsed.themeColor ?? parsed.theme_color ?? defaultSettings.themeColor,
+      };
     } catch {
       return defaultSettings;
     }
@@ -1216,21 +1248,97 @@ function SettingsPlaceholder() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [activeTab, setActiveTab] = useState("general");
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      if (typeof window === "undefined") return;
+
+      try {
+        const saved = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (!saved) return;
+
+        const parsed = JSON.parse(saved);
+        setSettings({
+          platformName: parsed.platformName ?? parsed.platform_name ?? defaultSettings.platformName,
+          supportEmail: parsed.supportEmail ?? parsed.support_email ?? defaultSettings.supportEmail,
+          allowRegistration:
+            typeof parsed.allowRegistration === "boolean"
+              ? parsed.allowRegistration
+              : typeof parsed.allow_registration === "boolean"
+                ? parsed.allow_registration
+                : defaultSettings.allowRegistration,
+          maintenanceMode:
+            typeof parsed.maintenanceMode === "boolean"
+              ? parsed.maintenanceMode
+              : typeof parsed.maintenance_mode === "boolean"
+                ? parsed.maintenance_mode
+                : defaultSettings.maintenanceMode,
+          darkModeDefault:
+            typeof parsed.darkModeDefault === "boolean"
+              ? parsed.darkModeDefault
+              : typeof parsed.dark_mode_default === "boolean"
+                ? parsed.dark_mode_default
+                : defaultSettings.darkModeDefault,
+          themeColor: parsed.themeColor ?? parsed.theme_color ?? defaultSettings.themeColor,
+        });
+      } catch {
+        // Ignore invalid stored values.
+      }
+    };
+
+    window.addEventListener("board-settings-updated", handleSettingsUpdate);
+    return () => window.removeEventListener("board-settings-updated", handleSettingsUpdate);
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    
-    // In a real app this would save to a database table like `system_settings`
-    // For now we persist in localStorage so the admin experience feels complete
-    localStorage.setItem("board_admin_settings", JSON.stringify(settings));
-    
-    setTimeout(() => {
-      setIsSaving(false);
+    setErrorMsg("");
+
+    const payload = {
+      platform_name: settings.platformName,
+      support_email: settings.supportEmail,
+      allow_registration: settings.allowRegistration,
+      maintenance_mode: settings.maintenanceMode,
+      dark_mode_default: settings.darkModeDefault,
+      theme_color: settings.themeColor,
+    };
+
+    try {
+      persistSettingsToStorage(payload);
+
+      const { data: existingRow, error: selectError } = await supabase
+        .from("system_settings")
+        .select("id")
+        .limit(1)
+        .maybeSingle();
+
+      if (selectError && selectError.code !== "PGRST116" && selectError.code !== "42P01") {
+        throw selectError;
+      }
+
+      if (existingRow?.id) {
+        const { error: updateError } = await supabase.from("system_settings").update(payload).eq("id", existingRow.id);
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        const { error: insertError } = await supabase.from("system_settings").insert(payload);
+        if (insertError) {
+          throw insertError;
+        }
+      }
+
       setSuccessMsg("Settings updated successfully!");
-      setTimeout(() => setSuccessMsg(""), 3000);
-    }, 600);
+      window.setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (error) {
+      console.error("Unable to save settings:", error);
+      setErrorMsg("The settings were stored locally, but the database update failed. Please retry once Supabase is available.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -1254,6 +1362,13 @@ function SettingsPlaceholder() {
             <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3 text-emerald-800">
               <CheckCircle2 size={18} />
               <p className="text-sm font-medium">{successMsg}</p>
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="mb-6 p-4 rounded-xl border border-rose-200 bg-rose-50 flex items-center gap-3 text-rose-700">
+              <XCircle size={18} />
+              <p className="text-sm font-medium">{errorMsg}</p>
             </div>
           )}
 

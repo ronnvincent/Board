@@ -20,30 +20,120 @@ const defaultSettings: SystemSettings = {
   theme_color: "#1f5149"
 };
 
+export const SETTINGS_STORAGE_KEY = "board_admin_settings";
+export const SETTINGS_UPDATED_EVENT = "board-settings-updated";
+
+const normalizeSettings = (value?: Partial<SystemSettings> | null): SystemSettings => {
+  const normalized = value ?? {};
+  return {
+    ...defaultSettings,
+    ...normalized,
+    platform_name: normalized.platform_name ?? (normalized as any).platformName ?? defaultSettings.platform_name,
+    support_email: normalized.support_email ?? (normalized as any).supportEmail ?? defaultSettings.support_email,
+    allow_registration:
+      typeof (normalized as any).allow_registration === "boolean"
+        ? (normalized as any).allow_registration
+        : typeof (normalized as any).allowRegistration === "boolean"
+          ? (normalized as any).allowRegistration
+          : defaultSettings.allow_registration,
+    maintenance_mode:
+      typeof (normalized as any).maintenance_mode === "boolean"
+        ? (normalized as any).maintenance_mode
+        : typeof (normalized as any).maintenanceMode === "boolean"
+          ? (normalized as any).maintenanceMode
+          : defaultSettings.maintenance_mode,
+    dark_mode_default:
+      typeof (normalized as any).dark_mode_default === "boolean"
+        ? (normalized as any).dark_mode_default
+        : typeof (normalized as any).darkModeDefault === "boolean"
+          ? (normalized as any).darkModeDefault
+          : defaultSettings.dark_mode_default,
+    theme_color: normalized.theme_color ?? (normalized as any).themeColor ?? defaultSettings.theme_color,
+  };
+};
+
+export const readSettingsFromStorage = (): SystemSettings => {
+  if (typeof window === "undefined") {
+    return defaultSettings;
+  }
+
+  try {
+    const saved = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!saved) {
+      return defaultSettings;
+    }
+
+    return normalizeSettings(JSON.parse(saved));
+  } catch (error) {
+    console.error("Unable to parse stored settings:", error);
+    return defaultSettings;
+  }
+};
+
+export const persistSettingsToStorage = (value?: Partial<SystemSettings> | null) => {
+  const nextSettings = normalizeSettings(value);
+
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(nextSettings));
+    window.dispatchEvent(new CustomEvent(SETTINGS_UPDATED_EVENT, { detail: nextSettings }));
+  }
+
+  return nextSettings;
+};
+
 const SettingsContext = createContext<{ settings: SystemSettings; loading: boolean }>({
   settings: defaultSettings,
   loading: true,
 });
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
-  const [settings, setSettings] = useState<SystemSettings>(defaultSettings);
+  const [settings, setSettings] = useState<SystemSettings>(() => readSettingsFromStorage());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initial fetch
+    let isMounted = true;
+
+    const applySettings = (value?: Partial<SystemSettings> | null) => {
+      if (!isMounted) return;
+      setSettings(normalizeSettings(value));
+    };
+
     const fetchSettings = async () => {
-      const { data, error } = await supabase.from("system_settings").select("*").limit(1).maybeSingle();
-      if (data) {
-        setSettings(data);
-      } else if (error) {
-        console.error("Error fetching system settings:", error);
+      try {
+        const { data, error } = await supabase.from("system_settings").select("*").limit(1).maybeSingle();
+        if (!isMounted) return;
+
+        if (data) {
+          applySettings(data);
+        } else {
+          applySettings(readSettingsFromStorage());
+        }
+
+        if (error && error.code !== "PGRST116" && error.code !== "42P01") {
+          console.error("Error fetching system settings:", error);
+        }
+      } catch (error) {
+        console.error("Unable to load system settings:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
+    };
+
+    const handleSettingsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<SystemSettings>;
+      applySettings(customEvent.detail ?? readSettingsFromStorage());
+    };
+
+    const handleStorageUpdate = (event: StorageEvent) => {
+      if (event.key === SETTINGS_STORAGE_KEY) {
+        applySettings(event.newValue ? JSON.parse(event.newValue) : null);
+      }
     };
 
     fetchSettings();
 
-    // Subscribe to real-time changes
     const subscription = supabase
       .channel("system_settings_changes")
       .on(
@@ -51,18 +141,23 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         { event: "*", schema: "public", table: "system_settings" },
         (payload) => {
           if (payload.new) {
-            setSettings(payload.new as SystemSettings);
+            applySettings(payload.new as SystemSettings);
           }
         }
       )
       .subscribe();
 
+    window.addEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdated as EventListener);
+    window.addEventListener("storage", handleStorageUpdate as EventListener);
+
     return () => {
+      isMounted = false;
+      window.removeEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdated as EventListener);
+      window.removeEventListener("storage", handleStorageUpdate as EventListener);
       supabase.removeChannel(subscription);
     };
   }, []);
 
-  // Apply theme color dynamically
   useEffect(() => {
     if (settings.theme_color) {
       document.documentElement.style.setProperty("--primary", settings.theme_color);
