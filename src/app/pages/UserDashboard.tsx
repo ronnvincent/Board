@@ -935,6 +935,10 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
   const [uploading, setUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  
+  // Real-time hook for syncing with DB
+  const { data: profiles } = useRealtimeData("profiles");
+  const realProfile = profiles.find((p: any) => p.id === user?.id) || user;
 
   const localCacheKey = `profile_${user?.id}`;
   const getLocalData = () => {
@@ -948,48 +952,63 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
     if (!user) return;
     
     setIsSaving(true);
-    
     const formData = new FormData(e.currentTarget);
-    const firstName = formData.get("firstName") as string;
-    const lastName = formData.get("lastName") as string;
-    const phone = formData.get("phone") as string;
-    const emergencyName = formData.get("emergencyName") as string;
-    const emergencyRelation = formData.get("emergencyRelation") as string;
-    const emergencyPhone = formData.get("emergencyPhone") as string;
-    
     const newLocalData = { ...localData };
-    if (phone !== null) newLocalData.phone = phone;
-    if (emergencyName !== null) newLocalData.emergencyName = emergencyName;
-    if (emergencyRelation !== null) newLocalData.emergencyRelation = emergencyRelation;
-    if (emergencyPhone !== null) newLocalData.emergencyPhone = emergencyPhone;
+
+    if (activeTab === "personal") {
+      const firstName = formData.get("firstName") as string;
+      const lastName = formData.get("lastName") as string;
+      const phone = formData.get("phone") as string;
+      if (phone !== null) newLocalData.phone = phone;
+
+      try {
+        let updateData: any = {};
+        if (firstName || lastName) {
+          updateData.full_name = `${firstName || ''} ${lastName || ''}`.trim();
+        }
+        if (Object.keys(updateData).length > 0) {
+          await supabase.from('profiles').update(updateData).eq('id', user.id);
+        }
+      } catch (err) {
+        console.error("Error updating profile:", err);
+      }
+    } else if (activeTab === "emergency") {
+      const emergencyName = formData.get("emergencyName") as string;
+      const emergencyRelation = formData.get("emergencyRelation") as string;
+      const emergencyPhone = formData.get("emergencyPhone") as string;
+      if (emergencyName !== null) newLocalData.emergencyName = emergencyName;
+      if (emergencyRelation !== null) newLocalData.emergencyRelation = emergencyRelation;
+      if (emergencyPhone !== null) newLocalData.emergencyPhone = emergencyPhone;
+    } else if (activeTab === "preferences") {
+      newLocalData.prefRent = formData.get("prefRent") !== null;
+      newLocalData.prefMaintenance = formData.get("prefMaintenance") !== null;
+      newLocalData.prefAnnouncements = formData.get("prefAnnouncements") !== null;
+      newLocalData.prefVisitors = formData.get("prefVisitors") !== null;
+    } else if (activeTab === "security") {
+      const newPassword = formData.get("newPassword") as string;
+      const confirmPassword = formData.get("confirmPassword") as string;
+      if (newPassword) {
+        if (newPassword !== confirmPassword) {
+          alert("New password and confirm password do not match!");
+          setIsSaving(false);
+          return;
+        }
+        const { error: passError } = await supabase.auth.updateUser({ password: newPassword });
+        if (passError) {
+          console.error(passError);
+          alert("Failed to update password. " + passError.message);
+          setIsSaving(false);
+          return;
+        }
+      }
+    }
 
     localStorage.setItem(localCacheKey, JSON.stringify(newLocalData));
     setLocalData(newLocalData);
-
-    try {
-      let updateData: any = {};
-      
-      // Update name in real database
-      if (firstName || lastName) {
-        updateData.full_name = `${firstName || ''} ${lastName || ''}`.trim();
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        const { error } = await supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('id', user.id);
-          
-        if (error) console.error(error); // Silently fail since we have local storage fallback
-      }
-      
-      setSuccessMsg("Changes saved successfully!");
-      setTimeout(() => setSuccessMsg(""), 3000);
-    } catch (err) {
-      console.error("Error saving profile:", err);
-    } finally {
-      setIsSaving(false);
-    }
+    
+    setSuccessMsg("Changes saved successfully!");
+    setTimeout(() => setSuccessMsg(""), 3000);
+    setIsSaving(false);
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1007,7 +1026,6 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
         .upload(filePath, file);
 
       if (uploadError) {
-        // Just mock it if storage isn't set up
         console.error("Storage upload failed, using local blob");
         const objectUrl = URL.createObjectURL(file);
         const newLocalData = { ...localData, avatar_url: objectUrl };
@@ -1035,7 +1053,12 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
     }
   };
 
-  const currentAvatar = localData.avatar_url || user?.avatar_url;
+  const currentAvatar = localData.avatar_url || realProfile?.avatar_url || user?.avatar_url;
+  
+  // Safe helper to get the first and last name from whichever profile object is available
+  const fullName = realProfile?.full_name || realProfile?.fullName || user?.fullName || "";
+  const firstName = fullName.split(" ")[0] || "";
+  const lastName = fullName.split(" ").slice(1).join(" ") || "";
 
   return (
     <div className="max-w-4xl mx-auto pb-12">
@@ -1088,7 +1111,7 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
 
           <form onSubmit={handleSave}>
             {activeTab === "personal" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div key={fullName} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div>
                   <h3 className="text-lg font-bold mb-4">Profile Picture</h3>
                   <div className="flex items-center gap-6">
@@ -1114,16 +1137,16 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">First Name</label>
-                      <input type="text" name="firstName" defaultValue={user?.fullName?.split(" ")[0] || ""} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                      <input type="text" name="firstName" defaultValue={firstName} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">Last Name</label>
-                      <input type="text" name="lastName" defaultValue={user?.fullName?.split(" ")[1] || ""} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                      <input type="text" name="lastName" defaultValue={lastName} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Email Address</label>
-                    <input type="email" defaultValue={user?.email || ""} className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly title="Contact support to change email" />
+                    <input type="email" defaultValue={realProfile?.email || user?.email || ""} className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly title="Contact support to change email" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
@@ -1164,13 +1187,13 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                 
                 <div className="space-y-4">
                   {[
-                    { title: "Rent Reminders", desc: "Get notified when rent is due or overdue." },
-                    { title: "Maintenance Updates", desc: "Receive updates on your maintenance requests." },
-                    { title: "House Announcements", desc: "Stay informed about general house news." },
-                    { title: "Visitor Approvals", desc: "Get alerts when your visitor pass is approved." },
+                    { title: "Rent Reminders", desc: "Get notified when rent is due or overdue.", name: "prefRent" },
+                    { title: "Maintenance Updates", desc: "Receive updates on your maintenance requests.", name: "prefMaintenance" },
+                    { title: "House Announcements", desc: "Stay informed about general house news.", name: "prefAnnouncements" },
+                    { title: "Visitor Approvals", desc: "Get alerts when your visitor pass is approved.", name: "prefVisitors" },
                   ].map((item, i) => (
                     <label key={i} className="flex items-start gap-3 p-4 rounded-xl border border-border hover:bg-muted/50 cursor-pointer transition">
-                      <input type="checkbox" defaultChecked className="mt-1 w-4 h-4 rounded text-primary focus:ring-primary" />
+                      <input type="checkbox" name={item.name} defaultChecked={localData[item.name] ?? true} className="mt-1 w-4 h-4 rounded text-primary focus:ring-primary" />
                       <div>
                         <p className="text-sm font-bold text-foreground">{item.title}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
@@ -1189,15 +1212,15 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Current Password</label>
-                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                    <input type="password" name="currentPassword" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">New Password</label>
-                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                    <input type="password" name="newPassword" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Confirm New Password</label>
-                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                    <input type="password" name="confirmPassword" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                 </div>
               </div>
