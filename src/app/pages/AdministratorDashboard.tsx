@@ -433,7 +433,7 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
         if (capacity > 0) {
           const roomInserts = Array.from({ length: capacity }).map((_, i) => ({
             house_id: newHouse.id,
-            number: `${i + 101}`,
+            number: String(i + 1).padStart(2, '0'),
             status: "vacant",
             price: 5000,
             features: ["Wi-Fi", "AC"]

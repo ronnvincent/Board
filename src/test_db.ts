@@ -1,34 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
+import * as dotenv from 'dotenv';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const supabaseUrl = 'https://mfypampschkhqnjrzsov.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1meXBhbXBzY2hraHFuanJ6c292Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMjczMjYsImV4cCI6MjA5OTYwMzMyNn0.6RTUxJbpBWeJOgq3RdbnPMakwTulL1ksVDnHs8usNsU';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: resolve(__dirname, '../.env') });
 
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "https://mfypampschkhqnjrzsov.supabase.co";
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1meXBhbXBzY2hraHFuanJ6c292Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNTAzMTgsImV4cCI6MjEwMDAxNzUxOH0.1rL5y62J4sT2uHhM1-n1d2sLqD3-kX1nQJ4vWn5Q";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function testConnection() {
-  console.log("Checking profiles table...");
-  const { data, error } = await supabase.from('profiles').select('*').limit(1);
-  if (error) {
-    console.error("Profiles Table Error:", error);
-  } else {
-    console.log("Profiles Table OK:", data);
-  }
-
-  console.log("\nAttempting a dummy signup to see the exact error...");
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: 'test_dummy_123@example.com',
-    password: 'password123',
-    options: { data: { full_name: 'Test Dummy' } }
-  });
-
-  if (authError) {
-    console.error("Auth Error Object:", authError);
-    console.error("Auth Error Message:", authError.message);
-    console.error("Auth Error Name:", authError.name);
-    console.error("Auth Error Status:", authError.status);
-  } else {
-    console.log("Auth OK:", authData);
+async function run() {
+  const { data: profiles, error: fetchError } = await supabase.from("profiles").select("*");
+  if (fetchError) console.error("Fetch error:", fetchError);
+  console.log("Profiles:", profiles);
+  if (profiles) {
+    for (const p of profiles) {
+      if (p.role === "resident") {
+        console.log(`Fixing profile ${p.id}...`);
+        const { error } = await supabase.from("profiles").update({ role: "user" }).eq("id", p.id);
+        if (error) console.error("Update error:", error);
+      }
+    }
   }
 }
-
-testConnection();
+run();
