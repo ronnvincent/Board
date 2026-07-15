@@ -23,6 +23,7 @@ import RoleBadge from "../components/dashboard/RoleBadge";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={18} />, id: "dashboard" },
+  { label: "Admissions", icon: <Activity size={18} />, id: "admissions" },
   { label: "Admins", icon: <Shield size={18} />, id: "admins" },
   { label: "All Houses", icon: <Building2 size={18} />, id: "houses" },
   { label: "All Users", icon: <Users size={18} />, id: "users" },
@@ -67,6 +68,7 @@ export default function AdministratorDashboard() {
       pageTitle={navItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
     >
       {activeNav === "dashboard" && <OverviewSection />}
+      {activeNav === "admissions" && <AdmissionsSection />}
       {activeNav === "admins" && <AdminsSection />}
       {activeNav === "houses" && <HousesSection />}
       {activeNav === "users" && <UsersSection />}
@@ -81,10 +83,12 @@ function OverviewSection() {
   const { data: admins } = useRealtimeData("admins");
   const { data: profiles } = useRealtimeData("profiles");
   const { data: rooms } = useRealtimeData("rooms");
+  const { data: tenants } = useRealtimeData("tenants");
 
   const totalHouses = houses.length;
   const totalAdmins = admins.length;
   const totalUsers = profiles.length;
+  const pendingAdmissions = (tenants as any[]).filter((tenant: any) => tenant.rent_status === "Due" && tenant.profile_id);
   
   const monthlyRevenue = rooms
     .filter((r: any) => r.status === "occupied")
@@ -151,7 +155,7 @@ function OverviewSection() {
           )}
         </motion.div>
 
-        {/* Activity feed */}
+        {/* Admissions summary */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -159,14 +163,78 @@ function OverviewSection() {
           className="rounded-2xl border border-border bg-card"
         >
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h3 className="text-sm font-bold">Recent Activity</h3>
-            <Activity size={15} className="text-muted-foreground" />
+            <h3 className="text-sm font-bold">Admissions Queue</h3>
+            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase text-amber-600">{pendingAdmissions.length} pending</span>
           </div>
-          <div className="flex h-[200px] flex-col items-center justify-center text-center px-4">
-            <p className="text-sm text-muted-foreground">Activity logs will appear here</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">As your platforms runs, real-time events will stream in.</p>
+          <div className="space-y-3 p-4">
+            {pendingAdmissions.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No pending admissions right now.</div>
+            ) : pendingAdmissions.slice(0, 4).map((tenant: any) => {
+              const linkedRoom = rooms.find((room: any) => room.id === tenant.room_id);
+              const linkedHouse = houses.find((house: any) => house.id === linkedRoom?.house_id);
+              return (
+                <div key={tenant.id} className="rounded-xl border border-border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{tenant.name}</p>
+                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase text-amber-600">Pending</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{linkedHouse?.name || "House not assigned"} • {linkedRoom ? `Room ${linkedRoom.number}` : "Room pending"}</p>
+                </div>
+              );
+            })}
           </div>
         </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function AdmissionsSection() {
+  const { data: tenants } = useRealtimeData("tenants");
+  const { data: rooms } = useRealtimeData("rooms");
+  const { data: houses } = useRealtimeData("houses");
+
+  const pendingAdmissions = (tenants as any[]).filter((tenant: any) => tenant.rent_status === "Due" && tenant.profile_id);
+  const approvedAdmissions = (tenants as any[]).filter((tenant: any) => tenant.rent_status === "Paid" && tenant.profile_id);
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold">Admissions Queue</h3>
+            <p className="text-sm text-muted-foreground">Review room requests and approve residents from a single place.</p>
+          </div>
+          <div className="flex gap-2 text-sm">
+            <div className="rounded-full bg-amber-50 px-3 py-1.5 font-semibold text-amber-600">{pendingAdmissions.length} pending</div>
+            <div className="rounded-full bg-emerald-100 px-3 py-1.5 font-semibold text-emerald-700">{approvedAdmissions.length} approved</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {pendingAdmissions.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground lg:col-span-2">No pending admissions.</div>
+        ) : pendingAdmissions.map((tenant: any) => {
+          const linkedRoom = rooms.find((room: any) => room.id === tenant.room_id);
+          const linkedHouse = houses.find((house: any) => house.id === linkedRoom?.house_id);
+
+          return (
+            <div key={tenant.id} className="rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">{tenant.name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Awaiting admission review</p>
+                </div>
+                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase text-amber-600">Pending</span>
+              </div>
+              <div className="mt-4 rounded-xl border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
+                <p>{linkedHouse?.name || "House not assigned"}</p>
+                <p className="mt-1">{linkedRoom ? `Room ${linkedRoom.number}` : "Room pending"}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
