@@ -5,6 +5,7 @@ import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import RoutingMachine from "../components/map/RoutingMachine";
+import { useAuth } from "../context/AuthContext";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -115,6 +116,7 @@ export function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; 
 }
 
 export default function ExploreRooms() {
+  const { user } = useAuth();
   const { data: rooms, loading: roomsLoading } = useRealtimeData("rooms");
   const { data: houses } = useRealtimeData("houses");
 
@@ -158,8 +160,24 @@ export default function ExploreRooms() {
   }).sort((a, b) => a.houseName.localeCompare(b.houseName));
 
   const handleApply = async (roomId: string) => {
-    // In a real app, this would create an application record or move the user to a checkout screen
-    alert(`Application started for Room ${roomId}! House admin will be notified.`);
+    if (!user) {
+      alert("Please log in to apply for a room.");
+      return;
+    }
+
+    const { error } = await supabase.from("tenants").insert({
+      name: user.fullName || "Applicant",
+      room_id: roomId,
+      profile_id: user.id,
+      rent_status: "Due"
+    });
+
+    if (error) {
+      alert("Failed to submit application.");
+      console.error(error);
+    } else {
+      alert(`Application submitted successfully! Administrator will review your request.`);
+    }
   };
 
   return (

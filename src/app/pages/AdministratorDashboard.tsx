@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Building2,
   Home,
@@ -15,6 +15,13 @@ import {
   Edit2,
   Trash2,
   MapPin,
+  Wind,
+  Wifi,
+  Bath,
+  Plus,
+  X,
+  Info,
+  CreditCard,
 } from "lucide-react";
 import { useEffect } from "react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
@@ -197,6 +204,16 @@ function AdmissionsSection() {
   const pendingAdmissions = (tenants as any[]).filter((tenant: any) => tenant.rent_status === "Due" && tenant.profile_id);
   const approvedAdmissions = (tenants as any[]).filter((tenant: any) => tenant.rent_status === "Paid" && tenant.profile_id);
 
+  const handleApprove = async (tenantId: string) => {
+    await supabase.from("tenants").update({ rent_status: "Paid" }).eq("id", tenantId);
+  };
+
+  const handleDecline = async (tenantId: string) => {
+    if (window.confirm("Are you sure you want to decline this application?")) {
+      await supabase.from("tenants").delete().eq("id", tenantId);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-border bg-card p-5">
@@ -231,6 +248,10 @@ function AdmissionsSection() {
               <div className="mt-4 rounded-xl border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
                 <p>{linkedHouse?.name || "House not assigned"}</p>
                 <p className="mt-1">{linkedRoom ? `Room ${linkedRoom.number}` : "Room pending"}</p>
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button onClick={() => handleDecline(tenant.id)} className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Decline</button>
+                <button onClick={() => handleApprove(tenant.id)} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-[#173f39]">Approve</button>
               </div>
             </div>
           );
@@ -420,6 +441,7 @@ function AdminModal({ isOpen, onClose, admin, houses }: { isOpen: boolean, onClo
 function HousesSection() {
   const { data: houses, loading: loadingHouses } = useRealtimeData("houses", "created_at", false);
   const { data: admins } = useRealtimeData("admins");
+  const { data: allRooms } = useRealtimeData("rooms");
   const [modalOpen, setModalOpen] = useState(false);
   const [houseToEdit, setHouseToEdit] = useState<any>(null);
 
@@ -467,6 +489,16 @@ function HousesSection() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {houses.map((house, i) => {
             const assignedAdmin = admins.find(a => a.house_id === house.id);
+            const houseRooms = allRooms.filter((r: any) => r.house_id === house.id);
+            const occupiedCount = houseRooms.filter((r: any) => r.status === "occupied").length;
+            const prices = houseRooms.map((r: any) => r.price || 0).filter((p: number) => p > 0);
+            const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+            const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+            const monthlyRevenue = houseRooms
+              .filter((r: any) => r.status === "occupied")
+              .reduce((sum: number, r: any) => sum + (r.price || 0), 0);
+            const collectionRate = houseRooms.length > 0 ? Math.round((occupiedCount / houseRooms.length) * 100) : 0;
+
             return (
               <motion.div
                 key={house.id}
@@ -498,15 +530,36 @@ function HousesSection() {
                     <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Rooms</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-2 text-center">
-                    <p className="text-lg font-bold">0</p>
+                    <p className="text-lg font-bold">{occupiedCount}</p>
                     <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Occupied</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-2 text-center">
-                    <p className="text-lg font-bold">0%</p>
-                    <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Collected</p>
+                    <p className="text-lg font-bold">{collectionRate}%</p>
+                    <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Occupancy</p>
                   </div>
                 </div>
-                <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2">
+                {/* Price Range & Revenue */}
+                {prices.length > 0 && (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-emerald-50 p-2">
+                      <p className="text-[9px] font-['DM_Mono'] uppercase text-emerald-600/70">Price Range</p>
+                      <p className="text-sm font-bold text-emerald-700">
+                        {minPrice === maxPrice 
+                          ? `₱${minPrice.toLocaleString()}` 
+                          : `₱${minPrice.toLocaleString()} – ₱${maxPrice.toLocaleString()}`}
+                        <span className="text-[9px] font-normal text-emerald-600/70">/mo</span>
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-blue-50 p-2">
+                      <p className="text-[9px] font-['DM_Mono'] uppercase text-blue-600/70">Revenue</p>
+                      <p className="text-sm font-bold text-blue-700">
+                        ₱{monthlyRevenue.toLocaleString()}
+                        <span className="text-[9px] font-normal text-blue-600/70">/mo</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2">
                   <div>
                     <p className="text-[10px] font-['DM_Mono'] uppercase tracking-[.14em] text-muted-foreground">Location</p>
                     <p className="text-sm font-semibold">{house.latitude != null && house.longitude != null ? "Pinned" : "Not pinned"}</p>
@@ -547,15 +600,63 @@ function HousesSection() {
   );
 }
 
+type RoomTier = {
+  id: string;
+  name: string;
+  price: string;
+  count: string;
+  hasAC: boolean;
+  hasWifi: boolean;
+  hasPrivateBath: boolean;
+};
+
+const TIER_ACCENTS = [
+  { border: "border-l-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700" },
+  { border: "border-l-blue-500", bg: "bg-blue-50", text: "text-blue-700" },
+  { border: "border-l-amber-500", bg: "bg-amber-50", text: "text-amber-700" },
+  { border: "border-l-purple-500", bg: "bg-purple-50", text: "text-purple-700" },
+  { border: "border-l-rose-500", bg: "bg-rose-50", text: "text-rose-700" },
+];
+
+function AmenityToggle({ icon, label, active, onToggle }: { icon: React.ReactNode; label: string; active: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+        active
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "bg-muted/60 text-muted-foreground hover:bg-muted"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function createDefaultTier(totalRooms: string): RoomTier {
+  return {
+    id: Math.random().toString(36).substring(2, 9),
+    name: "Standard",
+    price: "5000",
+    count: totalRooms || "0",
+    hasAC: true,
+    hasWifi: true,
+    hasPrivateBath: false,
+  };
+}
+
 function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () => void, house: any }) {
   const [name, setName] = useState(house?.name || "");
   const [rooms, setRooms] = useState(house?.rooms?.toString() || "");
   const [position, setPosition] = useState<[number, number]>(
     house?.latitude && house?.longitude 
       ? [house.latitude, house.longitude] 
-      : [14.5995, 120.9842] // Default to Manila
+      : [14.5995, 120.9842]
   );
   const [saving, setSaving] = useState(false);
+  const [tiers, setTiers] = useState<RoomTier[]>([createDefaultTier("")]);
 
   useEffect(() => {
     setName(house?.name || "");
@@ -565,34 +666,100 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
     } else {
       setPosition([14.5995, 120.9842]);
     }
+    // Reset tiers when opening modal
+    if (!house) {
+      setTiers([createDefaultTier("")]);
+    } else {
+      setTiers([createDefaultTier(house?.rooms?.toString() || "")]);
+    }
   }, [house, isOpen]);
 
+  // Keep default tier count in sync with total capacity when only 1 tier exists
+  useEffect(() => {
+    if (tiers.length === 1) {
+      setTiers(prev => [{ ...prev[0], count: rooms }]);
+    }
+  }, [rooms]);
+
   if (!isOpen) return null;
+
+  const totalCapacity = parseInt(rooms || "0", 10);
+  const assignedRooms = tiers.reduce((sum, t) => sum + (parseInt(t.count || "0", 10)), 0);
+  const isBalanced = assignedRooms === totalCapacity;
+  const isOver = assignedRooms > totalCapacity;
+
+  const updateTier = (id: string, updates: Partial<RoomTier>) => {
+    setTiers(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
+  const addTier = () => {
+    const remaining = totalCapacity - assignedRooms;
+    setTiers(prev => [...prev, {
+      id: Math.random().toString(36).substring(2, 9),
+      name: prev.length === 1 ? "Deluxe" : prev.length === 2 ? "Premium" : `Tier ${prev.length + 1}`,
+      price: "7000",
+      count: String(Math.max(0, remaining)),
+      hasAC: true,
+      hasWifi: true,
+      hasPrivateBath: prev.length >= 1,
+    }]);
+  };
+
+  const removeTier = (id: string) => {
+    if (tiers.length <= 1) return;
+    setTiers(prev => prev.filter(t => t.id !== id));
+  };
+
+  // Pricing summary
+  const tierPrices = tiers.map(t => parseInt(t.price || "0", 10)).filter(p => p > 0);
+  const minPrice = tierPrices.length > 0 ? Math.min(...tierPrices) : 0;
+  const maxPrice = tierPrices.length > 0 ? Math.max(...tierPrices) : 0;
+  const estimatedRevenue = tiers.reduce((sum, t) => {
+    return sum + (parseInt(t.count || "0", 10) * parseInt(t.price || "0", 10));
+  }, 0);
 
   const handleSave = async () => {
     setSaving(true);
     const payload = {
       name,
-      rooms: parseInt(rooms || "0", 10),
+      rooms: totalCapacity,
       latitude: position[0],
       longitude: position[1]
     };
 
     if (house) {
+      // Edit mode: only update house info, not rooms
       await supabase.from("houses").update(payload).eq("id", house.id);
     } else {
+      // Create mode: insert house + generate rooms from tiers
       const { data: newHouse, error } = await supabase.from("houses").insert(payload).select().single();
       
       if (!error && newHouse) {
-        const capacity = payload.rooms;
-        if (capacity > 0) {
-          const roomInserts = Array.from({ length: capacity }).map((_, i) => ({
-            house_id: newHouse.id,
-            number: String(i + 1).padStart(2, '0'),
-            status: "vacant",
-            price: 5000,
-            features: ["Wi-Fi", "AC"]
-          }));
+        const roomInserts: any[] = [];
+        let roomIndex = 0;
+
+        for (const tier of tiers) {
+          const tierCount = parseInt(tier.count || "0", 10);
+          const tierPrice = parseInt(tier.price || "0", 10);
+          const features: string[] = [];
+          if (tier.hasAC) features.push("AC");
+          if (tier.hasWifi) features.push("Wi-Fi");
+          if (tier.hasPrivateBath) features.push("Private Bath");
+
+          for (let i = 0; i < tierCount; i++) {
+            roomIndex++;
+            roomInserts.push({
+              house_id: newHouse.id,
+              number: String(roomIndex).padStart(2, '0'),
+              status: "vacant",
+              price: tierPrice,
+              features,
+              description: `${tier.name} room — ${features.join(", ") || "Basic amenities"}`,
+            });
+          }
+        }
+
+        if (roomInserts.length > 0) {
           await supabase.from("rooms").insert(roomInserts);
         }
       }
@@ -601,27 +768,35 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
     onClose();
   };
 
+  const canSave = name && totalCapacity > 0 && isBalanced && tiers.every(t => t.name && parseInt(t.price || "0", 10) > 0);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl"
       >
-        <h3 className="font-bold text-lg mb-4">{house ? "Edit Boarding House" : "Create Boarding House"}</h3>
+        <h3 className="font-bold text-lg mb-1">{house ? "Edit Boarding House" : "Create Boarding House"}</h3>
+        <p className="text-sm text-muted-foreground mb-5">Configure property details and room pricing.</p>
         
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-muted-foreground">Property Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+        <div className="space-y-5">
+          {/* Basic Info */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Property Name</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Total Room Capacity</label>
+              <input type="number" min="0" value={rooms} onChange={(e) => setRooms(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+            </div>
           </div>
-          <div>
-            <label className="text-xs font-bold text-muted-foreground">Total Room Capacity</label>
-            <input type="number" min="0" value={rooms} onChange={(e) => setRooms(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-          </div>
+
+          {/* Location */}
           <div>
             <label className="text-xs font-bold text-muted-foreground">Location Pin (Click on map to set)</label>
-            <div className="mt-1 h-[200px] w-full rounded-xl overflow-hidden border border-border relative z-0">
+            <div className="mt-1 h-[180px] w-full rounded-xl overflow-hidden border border-border relative z-0">
               <MapContainer center={position} zoom={13} style={{ height: "100%", width: "100%" }}>
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -632,11 +807,175 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
             </div>
             <p className="text-[10px] text-muted-foreground mt-1">Coordinates: {position[0].toFixed(4)}, {position[1].toFixed(4)}</p>
           </div>
+
+          {/* Room Tiers Section */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground">Room Configuration</label>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Define room types with pricing and amenities.</p>
+              </div>
+              {!house && totalCapacity > 0 && (
+                <button
+                  type="button"
+                  onClick={addTier}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition hover:bg-primary/20"
+                >
+                  <Plus size={13} /> Add Tier
+                </button>
+              )}
+            </div>
+
+            {house ? (
+              <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3">
+                <Info size={16} className="text-blue-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-blue-700">
+                  Room tiers only apply when creating new rooms. To change existing room prices and amenities, edit them individually in the <strong>Rooms</strong> tab.
+                </p>
+              </div>
+            ) : totalCapacity === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-6 text-center">
+                <p className="text-xs text-muted-foreground">Set a total room capacity above to configure room tiers.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <AnimatePresence mode="popLayout">
+                  {tiers.map((tier, i) => {
+                    const accent = TIER_ACCENTS[i % TIER_ACCENTS.length];
+                    return (
+                      <motion.div
+                        key={tier.id}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -20, height: 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className={`rounded-xl border border-border bg-background p-4 border-l-4 ${accent.border}`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`text-[10px] font-['DM_Mono'] uppercase tracking-[.14em] ${accent.text}`}>
+                            Tier {i + 1}
+                          </span>
+                          {tiers.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeTier(tier.id)}
+                              className="p-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 transition"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-3 mb-3">
+                          <div>
+                            <label className="text-[10px] font-bold text-muted-foreground">Tier Name</label>
+                            <input
+                              type="text"
+                              value={tier.name}
+                              onChange={(e) => updateTier(tier.id, { name: e.target.value })}
+                              placeholder="e.g. Standard"
+                              className="w-full mt-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm outline-none focus:border-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-muted-foreground">Monthly Price (₱)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={tier.price}
+                              onChange={(e) => updateTier(tier.id, { price: e.target.value })}
+                              className="w-full mt-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm outline-none focus:border-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-muted-foreground">Room Count</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={tier.count}
+                              onChange={(e) => updateTier(tier.id, { count: e.target.value })}
+                              className="w-full mt-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm outline-none focus:border-primary"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Amenity Toggles */}
+                        <div>
+                          <label className="text-[10px] font-bold text-muted-foreground mb-1.5 block">Amenities</label>
+                          <div className="flex flex-wrap gap-2">
+                            <AmenityToggle
+                              icon={<Wind size={13} />}
+                              label="AC"
+                              active={tier.hasAC}
+                              onToggle={() => updateTier(tier.id, { hasAC: !tier.hasAC })}
+                            />
+                            <AmenityToggle
+                              icon={<Wifi size={13} />}
+                              label="Wi-Fi"
+                              active={tier.hasWifi}
+                              onToggle={() => updateTier(tier.id, { hasWifi: !tier.hasWifi })}
+                            />
+                            <AmenityToggle
+                              icon={<Bath size={13} />}
+                              label="Private Bath"
+                              active={tier.hasPrivateBath}
+                              onToggle={() => updateTier(tier.id, { hasPrivateBath: !tier.hasPrivateBath })}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+
+                {/* Room Assignment Indicator */}
+                <div className={`flex items-center justify-between rounded-xl px-4 py-2.5 text-xs font-semibold ${
+                  isBalanced
+                    ? "bg-emerald-50 text-emerald-700"
+                    : isOver
+                      ? "bg-red-50 text-red-600"
+                      : "bg-amber-50 text-amber-600"
+                }`}>
+                  <span>
+                    {assignedRooms} of {totalCapacity} rooms assigned to tiers
+                  </span>
+                  <span>
+                    {isBalanced ? "✓ Balanced" : isOver ? `${assignedRooms - totalCapacity} over capacity` : `${totalCapacity - assignedRooms} remaining`}
+                  </span>
+                </div>
+
+                {/* Pricing Summary */}
+                {tierPrices.length > 0 && (
+                  <div className="rounded-xl border border-border bg-muted/30 p-4">
+                    <p className="text-[10px] font-['DM_Mono'] uppercase tracking-[.14em] text-muted-foreground mb-2">Pricing Summary</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Price Range</p>
+                        <p className="text-sm font-bold">
+                          {minPrice === maxPrice
+                            ? `₱${minPrice.toLocaleString()}`
+                            : `₱${minPrice.toLocaleString()} – ₱${maxPrice.toLocaleString()}`}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Tiers</p>
+                        <p className="text-sm font-bold">{tiers.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Est. Revenue</p>
+                        <p className="text-sm font-bold text-primary">₱{estimatedRevenue.toLocaleString()}/mo</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-bold text-muted-foreground hover:bg-muted transition">Cancel</button>
-          <button onClick={handleSave} disabled={saving || !name || !rooms} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50">
+          <button onClick={handleSave} disabled={saving || !canSave} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50">
             {saving ? "Saving..." : "Save Property"}
           </button>
         </div>
