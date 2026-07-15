@@ -485,9 +485,9 @@ function MaintenanceSection({ room, tenant }: { room: any, tenant: any }) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`grid size-8 place-items-center rounded-lg ${
-                    req.status === "Done" || req.status === "done" ? "bg-emerald-100 text-emerald-600" : "bg-amber-50 text-amber-600"
+                    req.status === "resolved" || req.status === "closed" ? "bg-emerald-100 text-emerald-600" : "bg-amber-50 text-amber-600"
                   }`}>
-                    {req.status === "Done" || req.status === "done" ? <CheckCircle2 size={15} /> : <Clock size={15} />}
+                    {req.status === "resolved" || req.status === "closed" ? <CheckCircle2 size={15} /> : <Clock size={15} />}
                   </div>
                   <div>
                     <p className="text-sm font-medium">{req.subject || originalDesc}</p>
@@ -495,9 +495,9 @@ function MaintenanceSection({ room, tenant }: { room: any, tenant: any }) {
                   </div>
                 </div>
                 <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase whitespace-nowrap ${
-                  req.status === "Done" || req.status === "done" ? "bg-emerald-100 text-emerald-700" : 
-                  req.status === "In Progress" || req.status === "in-progress" ? "bg-blue-100 text-blue-700" : "bg-amber-50 text-amber-600"
-                }`}>{req.status || "Open"}</span>
+                  req.status === "resolved" || req.status === "closed" ? "bg-emerald-100 text-emerald-700" : 
+                  req.status === "in_progress" ? "bg-blue-100 text-blue-700" : "bg-amber-50 text-amber-600"
+                }`}>{req.status?.replace("_", " ") || "open"}</span>
               </div>
               
               {adminReply && (

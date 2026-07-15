@@ -1610,11 +1610,11 @@ function MaintenanceSection() {
                     </div>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
-                    req.status === "done" || req.status === "Done" ? "bg-emerald-100 text-emerald-700" :
-                    req.status === "in-progress" || req.status === "In Progress" ? "bg-blue-100 text-blue-700" :
+                    req.status === "resolved" || req.status === "closed" ? "bg-emerald-100 text-emerald-700" :
+                    req.status === "in_progress" ? "bg-blue-100 text-blue-700" :
                     "bg-amber-100 text-amber-700"
                   }`}>
-                    {req.status || "Open"}
+                    {req.status?.replace("_", " ") || "open"}
                   </span>
                 </div>
                 
@@ -1645,18 +1645,18 @@ function MaintenanceSection() {
                       />
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleUpdate(req, "in-progress")}
+                          onClick={() => handleUpdate(req, "in_progress")}
                           disabled={updating === req.id}
                           className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100 transition whitespace-nowrap disabled:opacity-50"
                         >
                           Mark In Progress
                         </button>
                         <button
-                          onClick={() => handleUpdate(req, "done")}
+                          onClick={() => handleUpdate(req, "resolved")}
                           disabled={updating === req.id}
                           className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-100 transition whitespace-nowrap disabled:opacity-50"
                         >
-                          Mark Done
+                          Mark Resolved
                         </button>
                       </div>
                     </div>
