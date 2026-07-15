@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
+  AlertTriangle,
   BedDouble,
+  Bell,
   Calendar,
   CheckCircle2,
   Clock,
   CreditCard,
+  Home,
   LayoutDashboard,
   Megaphone,
+  ReceiptText,
   Send,
   User,
   Users,
@@ -18,7 +22,6 @@ import {
   MapPin,
   QrCode,
   X,
-  Clock,
   Smile,
   Paperclip,
   ChevronLeft,
@@ -34,9 +37,20 @@ import MockPaymentGateway from "../components/shared/MockPaymentGateway";
 import { QRCodeSVG } from "qrcode.react";
 import EmojiPicker from 'emoji-picker-react';
 import { compressImageToBase64 } from "../../lib/imageUtils";
+import {
+  buildReceiptNumber,
+  formatCurrency,
+  getDueDateState,
+  isMaintenanceOpen,
+  isUrgentNotice,
+  maintenanceStatusClass,
+  maintenanceStatusLabel,
+  normalizeMaintenanceStatus,
+  registerPushSubscription,
+} from "../lib/tenantPortal";
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: <LayoutDashboard size={18} />, id: "dashboard" },
+  { label: "My Home", icon: <LayoutDashboard size={18} />, id: "dashboard" },
   { label: "My Room", icon: <BedDouble size={18} />, id: "room" },
   { label: "Rent", icon: <CreditCard size={18} />, id: "rent" },
   { label: "Maintenance", icon: <Wrench size={18} />, id: "maintenance" },
@@ -50,6 +64,7 @@ export default function UserDashboard() {
   const { user } = useAuth();
   const [activeNav, setActiveNav] = useState("dashboard");
   const [activeChatUserId, setActiveChatUserId] = useState<string | null>(null);
+  const [activeMaintenanceContext, setActiveMaintenanceContext] = useState<string | null>(null);
 
   // Fetch all tenants to find the one linked to this user profile
   const { data: tenants, loading: tenantsLoading } = useRealtimeData("tenants");
@@ -79,10 +94,20 @@ export default function UserDashboard() {
 
       {myTenant && (
         <>
-          {activeNav === "dashboard" && <OverviewSection userName={user?.fullName ?? "Resident"} tenant={myTenant} room={myRoom} />}
+          {activeNav === "dashboard" && <OverviewSection userName={user?.fullName ?? "Resident"} tenant={myTenant} room={myRoom} onNavigate={setActiveNav} />}
           {activeNav === "room" && <RoomSection tenant={myTenant} room={myRoom} />}
-          {activeNav === "rent" && <RentSection tenant={myTenant} />}
-          {activeNav === "maintenance" && <MaintenanceSection room={myRoom} tenant={myTenant} />}
+          {activeNav === "rent" && <RentSectionV2 tenant={myTenant} />}
+          {activeNav === "maintenance" && (
+              <MaintenanceSectionV2
+              room={myRoom}
+              tenant={myTenant}
+              onFollowUp={(profileId, requestId) => {
+                setActiveChatUserId(profileId);
+                setActiveMaintenanceContext(requestId);
+                setActiveNav("messages");
+              }}
+            />
+          )}
           {activeNav === "community" && (
             <CommunitySection 
               profileId={user?.id} 
@@ -98,6 +123,8 @@ export default function UserDashboard() {
               currentUserId={user?.id} 
               activeChatUserId={activeChatUserId} 
               setActiveChatUserId={setActiveChatUserId} 
+              maintenanceContextId={activeMaintenanceContext}
+              clearMaintenanceContext={() => setActiveMaintenanceContext(null)}
             />
           )}
           {activeNav === "visitors" && <VisitorsSection profileId={user?.id} />}
@@ -125,29 +152,47 @@ function UnassignedPlaceholder() {
   );
 }
 
-function OverviewSection({ userName, tenant, room }: { userName: string, tenant: any, room: any }) {
+function OverviewSection({ userName, tenant, room, onNavigate }: { userName: string, tenant: any, room: any, onNavigate: (tab: string) => void }) {
   const { data: maintenance } = useRealtimeData("maintenance_requests");
   const { data: houses } = useRealtimeData("houses");
   const { data: notices } = useRealtimeData("notices", "created_at", true);
   const { data: profiles } = useRealtimeData("profiles");
+  const { data: payments } = useRealtimeData("payments", "created_at", true);
+  const { data: rentBills } = useRealtimeData("rent_bills", "due_date", true);
+  const { data: visitors } = useRealtimeData("visitors", "created_at", false);
+  const { data: notifications } = useRealtimeData("notifications", "created_at", true);
   const [paying, setPaying] = useState(false);
   const [activeLocationHouse, setActiveLocationHouse] = useState<any>(null);
-  
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveReason, setLeaveReason] = useState("");
   const [leavingSubmit, setLeavingSubmit] = useState(false);
+
+  const assignedHouse = houses.find((house: any) => house.id === room?.house_id);
+  const myRequests = maintenance.filter((m: any) => m.tenant_id === tenant.id || (!m.tenant_id && m.room_id === room?.id));
+  const openRequests = myRequests.filter((m: any) => isMaintenanceOpen(m.status)).length;
+  const urgentNotice = notices.find((notice: any) => isUrgentNotice(notice));
+  const myNotifications = notifications.filter((n: any) => !n.profile_id || n.profile_id === tenant.profile_id);
+  const unreadNotifications = myNotifications.filter((n: any) => !n.is_read);
+  const urgentNotification = myNotifications.find((n: any) => n.priority === "urgent" && !n.is_read);
+  const unpaidBills = rentBills.filter((bill: any) => bill.tenant_id === tenant.id && bill.status !== "paid" && bill.status !== "void");
+  const nextBill = unpaidBills[0];
+  const latestPayment = payments.find((payment: any) => payment.tenant_id === tenant.id);
+  const rentAmount = nextBill?.amount || room?.price || 5000;
+  const dueDate = nextBill?.due_date || tenant.due_date;
+  const dueState = getDueDateState(dueDate);
+  const pendingVisitors = visitors.filter((visitor: any) => visitor.profile_id === tenant.profile_id && visitor.status === "pending").length;
 
   const handleLeaveRoom = async () => {
     if (!leaveReason.trim()) return;
     setLeavingSubmit(true);
     
     try {
-      const admins = profiles.filter((p: any) => p.role === 'admin' || p.role === 'administrator');
+      const admins = profiles.filter((p: any) => p.role === "admin" || p.role === "administrator");
       const messagePromises = admins.map((admin: any) => 
         supabase.from("messages").insert({
           sender_id: tenant.profile_id,
           receiver_id: admin.id,
-          content: `Notice of Move Out. Room: ${room?.number || 'Unknown'}. Reason: ${leaveReason}`
+          content: `Notice of Move Out. Room: ${room?.number || "Unknown"}. Reason: ${leaveReason}`
         })
       );
       await Promise.all(messagePromises);
@@ -155,74 +200,254 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
     } catch (err) {
       console.error(err);
       alert("Failed to process leave request");
+      setLeavingSubmit(false);
     }
-    // No need to setLeavingSubmit(false) if tenant deletion triggers unmount, 
-    // but just in case it fails we should handle it (caught above).
   };
-  // Only count open requests for THIS room
-  const openRequests = maintenance.filter((m: any) => m.room_id === room?.id && m.status !== "done").length;
-  const assignedHouse = houses.find((house: any) => house.id === room?.house_id);
-  const latestNotice = notices && notices.length > 0 ? notices[0] : null;
+
+  const handleQuickPay = async () => {
+    setPaying(false);
+    const paidAt = new Date().toISOString();
+    const receiptNumber = buildReceiptNumber();
+    await supabase.from("tenants").update({ rent_status: "Paid" }).eq("id", tenant.id);
+    if (nextBill?.id) {
+      await supabase.from("rent_bills").update({ status: "paid", paid_at: paidAt }).eq("id", nextBill.id);
+    }
+    await supabase.from("payments").insert({
+      tenant_id: tenant.id,
+      rent_bill_id: nextBill?.id || null,
+      amount: rentAmount,
+      description: `Rent Payment for Room ${room?.number || ""}`,
+      receipt_number: receiptNumber,
+      payment_method: "card",
+      status: "Paid",
+      paid_at: paidAt
+    });
+    if (tenant.profile_id) {
+      await supabase.from("notifications").insert({
+        profile_id: tenant.profile_id,
+        title: "Payment receipt ready",
+        body: `Receipt ${receiptNumber} was generated for ${formatCurrency(rentAmount)}.`,
+        category: "rent",
+        priority: "normal"
+      });
+    }
+  };
+
+  const dashboardCards = [
+    {
+      id: "room",
+      title: "Room",
+      value: room ? `Room ${room.number}` : "Unassigned",
+      detail: assignedHouse?.name || "Boarding house",
+      icon: <BedDouble size={18} />,
+      accent: "bg-primary/10 text-primary",
+    },
+    {
+      id: "rent",
+      title: "Rent",
+      value: formatCurrency(rentAmount),
+      detail: dueState.label,
+      icon: <CreditCard size={18} />,
+      accent: tenant.rent_status === "Paid" && unpaidBills.length === 0 ? "bg-emerald-100 text-emerald-700" : "bg-amber-50 text-amber-700",
+    },
+    {
+      id: "maintenance",
+      title: "Maintenance",
+      value: `${openRequests} open`,
+      detail: `${myRequests.length} total request${myRequests.length === 1 ? "" : "s"}`,
+      icon: <Wrench size={18} />,
+      accent: openRequests > 0 ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700",
+    },
+    {
+      id: "visitors",
+      title: "Visitors",
+      value: `${pendingVisitors} pending`,
+      detail: "Gate passes",
+      icon: <Users size={18} />,
+      accent: "bg-purple-100 text-purple-700",
+    },
+  ];
 
   return (
-    <div className="space-y-8">
-      {/* Welcome */}
+    <div className="mx-auto max-w-6xl space-y-6">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-border bg-card p-6"
+        className="rounded-2xl border border-border bg-card p-5 sm:p-6"
       >
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="font-['DM_Mono'] text-[10px] uppercase tracking-[.12em] text-muted-foreground mb-2">Welcome home</p>
-            <h2 className="font-['Libre_Baskerville'] text-2xl tracking-tight">
+            <p className="font-['DM_Mono'] text-[10px] uppercase tracking-[.12em] text-muted-foreground">My home</p>
+            <h2 className="mt-2 font-['Libre_Baskerville'] text-2xl tracking-tight sm:text-3xl">
               Good day, <span className="text-primary">{userName.split(" ")[0]}</span>
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">Here's a quick look at your room and dues.</p>
+            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+              Rent, room, visitors, maintenance, and alerts are gathered here for quick mobile access.
+            </p>
           </div>
           <button 
             onClick={() => setIsLeaving(true)} 
-            className="text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2.5 rounded-xl transition shrink-0"
+            className="w-full rounded-xl bg-red-50 px-4 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-100 sm:w-auto"
           >
             Request to Leave Room
           </button>
         </div>
       </motion.div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard title="My Room" value={room ? `Room ${room.number}` : "Unassigned"} icon={<BedDouble size={19} />} index={0} />
-        <StatCard 
-          title="Rent Status" 
-          value={tenant.rent_status} 
-          icon={<CreditCard size={19} />} 
-          colorClass={tenant.rent_status === "Paid" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"} 
-          subtitle={tenant.due_date ? `Due ${tenant.due_date}` : "No due date set"} 
-          index={1} 
-        />
-        <StatCard title="Open Requests" value={openRequests} icon={<Wrench size={19} />} colorClass="bg-[#dbeafe] text-[#2563eb]" index={2} />
-      </div>
-
-      {assignedHouse && (
+      {(urgentNotification || urgentNotice) && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-border bg-card p-4"
+          className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-900"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold">{assignedHouse.name}</p>
-              <p className="text-xs text-muted-foreground">Tap to see the route from your current location.</p>
+          <div className="flex gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-red-100 text-red-600">
+              <AlertTriangle size={20} />
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveLocationHouse(assignedHouse)}
-              className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary/20"
-            >
-              <MapPin size={14} /> See Location
-            </button>
+            <div>
+              <p className="text-sm font-bold">{urgentNotification?.title || urgentNotice?.title || "Emergency notice"}</p>
+              <p className="mt-1 text-sm text-red-800">{urgentNotification?.body || urgentNotice?.content}</p>
+            </div>
           </div>
         </motion.div>
       )}
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {dashboardCards.map((card, index) => (
+          <motion.button
+            key={card.id}
+            type="button"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.06 }}
+            onClick={() => onNavigate(card.id)}
+            className="rounded-2xl border border-border bg-card p-4 text-left transition hover:border-primary/30 hover:bg-muted/30"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className={`grid size-10 place-items-center rounded-xl ${card.accent}`}>
+                {card.icon}
+              </div>
+              <ChevronLeft size={16} className="rotate-180 text-muted-foreground" />
+            </div>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[.1em] text-muted-foreground">{card.title}</p>
+            <p className="mt-1 text-xl font-bold">{card.value}</p>
+            <p className={`mt-1 text-xs ${card.id === "rent" ? dueState.tone : "text-muted-foreground"}`}>{card.detail}</p>
+          </motion.button>
+        ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
+        <div className="space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-border bg-card p-5"
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold">Current rent</p>
+                <p className="mt-1 text-3xl font-bold text-primary">{formatCurrency(rentAmount)}</p>
+                <p className={`mt-1 text-sm ${dueState.tone}`}>{dueState.label}</p>
+              </div>
+              {tenant.rent_status !== "Paid" || unpaidBills.length > 0 ? (
+                <button 
+                  onClick={() => setPaying(true)}
+                  className="rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39]"
+                >
+                  Pay Now
+                </button>
+              ) : (
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">Current</span>
+              )}
+            </div>
+            {latestPayment && (
+              <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 text-sm">
+                <p className="font-semibold text-emerald-800">Latest receipt</p>
+                <p className="mt-1 text-emerald-700">{latestPayment.receipt_number || latestPayment.id} - {formatCurrency(latestPayment.amount)}</p>
+              </div>
+            )}
+          </motion.div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { id: "rent", label: "View receipts", icon: <ReceiptText size={16} /> },
+              { id: "maintenance", label: "Request repair", icon: <Wrench size={16} /> },
+              { id: "visitors", label: "Register visitor", icon: <Users size={16} /> },
+              { id: "profile", label: "Update profile", icon: <User size={16} /> },
+            ].map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={() => onNavigate(action.id)}
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-sm font-bold transition hover:bg-muted/30"
+              >
+                <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">{action.icon}</span>
+                {action.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {assignedHouse && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border border-border bg-card p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">{assignedHouse.name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">View the route from your current location.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveLocationHouse(assignedHouse)}
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary/20"
+                >
+                  <MapPin size={14} /> Map
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-border bg-card"
+          >
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h3 className="text-sm font-bold">Alerts</h3>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{unreadNotifications.length} unread</span>
+            </div>
+            <div className="divide-y divide-border">
+              {myNotifications.slice(0, 4).map((notification: any) => (
+                <button
+                  key={notification.id}
+                  type="button"
+                  onClick={async () => {
+                    await supabase.from("notifications").update({ is_read: true }).eq("id", notification.id);
+                  }}
+                  className="flex w-full gap-3 px-5 py-4 text-left transition hover:bg-muted/30"
+                >
+                  <div className={`grid size-9 shrink-0 place-items-center rounded-xl ${notification.priority === "urgent" ? "bg-red-100 text-red-600" : "bg-primary/10 text-primary"}`}>
+                    <Bell size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{notification.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{notification.body}</p>
+                  </div>
+                </button>
+              ))}
+              {myNotifications.length === 0 && (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  No alerts yet.
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </div>
 
       <LocationMapModal
         isOpen={Boolean(activeLocationHouse)}
@@ -230,109 +455,37 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
         house={activeLocationHouse}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Rent quick view */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-2xl border border-border bg-card overflow-hidden"
-        >
-          <div className="border-b border-border px-5 py-4">
-            <h3 className="text-sm font-bold">Current Bill</h3>
-          </div>
-          <div className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-2xl font-bold">Standard Rent</p>
-                <p className="text-xs text-muted-foreground">
-                  {tenant.due_date ? `Due ${tenant.due_date}` : "No due date set"}
-                </p>
-              </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                tenant.rent_status === "Paid" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-              }`}>
-                {tenant.rent_status}
-              </span>
-            </div>
-            {tenant.rent_status !== "Paid" && (
-              <button 
-                onClick={() => setPaying(true)}
-                className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition"
-              >
-                Pay Now
-              </button>
-            )}
-          </div>
-        </motion.div>
+      {paying && (
+        <MockPaymentGateway 
+          amount={rentAmount} 
+          description={`Rent Payment for Room ${room?.number || ""}`}
+          onCancel={() => setPaying(false)}
+          onSuccess={handleQuickPay}
+        />
+      )}
 
-        {paying && (
-          <MockPaymentGateway 
-            amount={room?.price || 5000} 
-            description={`Rent Payment for Room ${room?.number || ''}`}
-            onCancel={() => setPaying(false)}
-            onSuccess={async () => {
-              setPaying(false);
-              await supabase.from("tenants").update({ rent_status: "Paid" }).eq("id", tenant.id);
-            }}
-          />
-        )}
-
-        {/* Announcements quick view */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="rounded-2xl border border-border bg-card flex flex-col"
-        >
-          <div className="border-b border-border px-5 py-4 flex items-center justify-between">
-            <h3 className="text-sm font-bold">Latest Announcement</h3>
-          </div>
-          <div className="p-5 flex-1 flex flex-col justify-center items-center text-center">
-            {latestNotice ? (
-              <div className="flex flex-col items-center w-full max-w-sm">
-                <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary mb-3">
-                  <Megaphone size={18} />
-                </div>
-                <h4 className="font-bold text-base mb-1">{latestNotice.title}</h4>
-                <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{latestNotice.content}</p>
-                <p className="text-[10px] font-mono text-muted-foreground/60 uppercase mt-4">
-                  {new Date(latestNotice.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            ) : (
-              <div className="text-center text-muted-foreground">
-                <Megaphone size={24} className="mx-auto mb-2 opacity-20" />
-                <p className="text-sm">No new announcements</p>
-              </div>
-            )}
-          </div>
-        </motion.div>
-      </div>
       <AnimatePresence>
         {isLeaving && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl"
             >
-              <h3 className="text-xl font-bold font-['Libre_Baskerville'] mb-2">Leave Room</h3>
-              <p className="text-sm text-muted-foreground mb-4">Please provide a reason for leaving. Your request and reason will be sent to the administration, and you will immediately be unassigned from this room.</p>
-              
+              <h3 className="font-['Libre_Baskerville'] text-xl font-bold mb-2">Leave Room</h3>
+              <p className="mb-4 text-sm text-muted-foreground">Please provide a reason. Your request will be sent to the administration and your room assignment will be released.</p>
               <textarea
                 value={leaveReason}
                 onChange={(e) => setLeaveReason(e.target.value)}
                 placeholder="Reason for leaving..."
-                className="w-full h-32 rounded-xl border border-border bg-background p-4 text-sm outline-none focus:border-red-500 mb-4 resize-none"
+                className="mb-4 h-32 w-full resize-none rounded-xl border border-border bg-background p-4 text-sm outline-none focus:border-red-500"
               />
-              
-              <div className="flex gap-3 justify-end">
+              <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setIsLeaving(false)}
                   disabled={leavingSubmit}
-                  className="rounded-xl px-4 py-2.5 text-sm font-bold text-muted-foreground hover:text-foreground transition disabled:opacity-50"
+                  className="rounded-xl px-4 py-2.5 text-sm font-bold text-muted-foreground transition hover:text-foreground disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -388,6 +541,176 @@ function RoomSection({ tenant, room }: { tenant: any, room: any }) {
           </div>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+function RentSectionV2({ tenant }: { tenant: any }) {
+  const [paying, setPaying] = useState(false);
+  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
+  const { data: rooms } = useRealtimeData("rooms");
+  const { data: payments } = useRealtimeData("payments", "created_at", true);
+  const { data: rentBills } = useRealtimeData("rent_bills", "due_date", true);
+  
+  const myRoom = rooms.find((r: any) => r.id === tenant.room_id);
+  const myBills = rentBills
+    .filter((bill: any) => bill.tenant_id === tenant.id)
+    .sort((a: any, b: any) => new Date(a.due_date || 0).getTime() - new Date(b.due_date || 0).getTime());
+  const unpaidBills = myBills.filter((bill: any) => bill.status !== "paid" && bill.status !== "void");
+  const activeBill = unpaidBills.find((bill: any) => bill.id === selectedBillId) || unpaidBills[0];
+  const rentAmount = activeBill?.amount || myRoom?.price || 5000;
+  const dueState = getDueDateState(activeBill?.due_date || tenant.due_date);
+  const myPayments = payments
+    .filter((p: any) => p.tenant_id === tenant.id)
+    .sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+  const handlePaymentSuccess = async () => {
+    const paidAt = new Date().toISOString();
+    const receiptNumber = buildReceiptNumber();
+    setPaying(false);
+    
+    await supabase.from("tenants").update({ rent_status: "Paid" }).eq("id", tenant.id);
+    
+    if (activeBill?.id) {
+      await supabase.from("rent_bills").update({ status: "paid", paid_at: paidAt }).eq("id", activeBill.id);
+    }
+
+    await supabase.from("payments").insert({
+      tenant_id: tenant.id,
+      rent_bill_id: activeBill?.id || null,
+      amount: rentAmount,
+      description: activeBill?.billing_period ? `Rent for ${activeBill.billing_period}` : `Rent Payment for Room ${myRoom?.number || ""}`,
+      receipt_number: receiptNumber,
+      payment_method: "card",
+      status: "Paid",
+      paid_at: paidAt
+    });
+
+    if (tenant.profile_id) {
+      await supabase.from("notifications").insert({
+        profile_id: tenant.profile_id,
+        title: "Rent payment confirmed",
+        body: `Receipt ${receiptNumber} is now available in your rent history.`,
+        category: "rent",
+        priority: "normal"
+      });
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-border bg-card p-6"
+      >
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-['DM_Mono'] text-[10px] uppercase tracking-[.12em] text-muted-foreground">Current bill</p>
+            <p className="mt-2 text-3xl font-bold text-primary">{formatCurrency(rentAmount)}</p>
+            <p className={`mt-1 text-sm ${dueState.tone}`}>{dueState.label}</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <span className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+              tenant.rent_status === "Paid" && unpaidBills.length === 0 ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+            }`}>
+              {unpaidBills.length > 0 ? `${unpaidBills.length} unpaid bill${unpaidBills.length === 1 ? "" : "s"}` : tenant.rent_status}
+            </span>
+            {(tenant.rent_status !== "Paid" || unpaidBills.length > 0) && (
+              <button 
+                onClick={() => setPaying(true)}
+                className="w-full rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39] sm:w-auto"
+              >
+                Pay Now
+              </button>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      {paying && (
+        <MockPaymentGateway 
+          amount={rentAmount} 
+          description={activeBill?.billing_period ? `Rent for ${activeBill.billing_period}` : `Rent Payment for Room ${myRoom?.number || ""}`}
+          onCancel={() => setPaying(false)}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="border-b border-border px-5 py-4">
+            <h3 className="text-sm font-bold">Upcoming Bills</h3>
+          </div>
+          <div className="divide-y divide-border">
+            {myBills.map((bill: any) => {
+              const state = getDueDateState(bill.due_date);
+              return (
+                <button
+                  key={bill.id}
+                  type="button"
+                  onClick={() => setSelectedBillId(bill.id)}
+                  className={`flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-muted/30 ${selectedBillId === bill.id ? "bg-primary/5" : ""}`}
+                >
+                  <div>
+                    <p className="text-sm font-bold">{bill.billing_period || "Monthly rent"}</p>
+                    <p className={`mt-1 text-xs ${state.tone}`}>{state.label}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold">{formatCurrency(bill.amount)}</p>
+                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${bill.status === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-amber-50 text-amber-600"}`}>
+                      {bill.status}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+            {myBills.length === 0 && (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No rent bills have been posted yet. Your current tenant due date is still shown above.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="border-b border-border px-5 py-4">
+            <h3 className="text-sm font-bold">Receipts & Payment History</h3>
+          </div>
+          <div className="divide-y divide-border">
+            {myPayments.map((payment: any) => (
+              <div key={payment.id} className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-600">
+                    <ReceiptText size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">{payment.description}</p>
+                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                      {payment.receipt_number || payment.id} - {new Date(payment.paid_at || payment.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="mb-1 text-sm font-bold text-emerald-600">{formatCurrency(payment.amount)}</p>
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700">
+                    {payment.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {myPayments.length === 0 && (
+              <div className="p-12 text-center">
+                <div className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-muted">
+                  <CreditCard size={20} className="text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground">No past payments</p>
+                <p className="mt-1 text-xs text-muted-foreground">Receipts and confirmation history will appear here.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -492,6 +815,244 @@ function RentSection({ tenant }: { tenant: any }) {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MaintenanceSectionV2({
+  room,
+  tenant,
+  onFollowUp,
+}: {
+  room: any;
+  tenant: any;
+  onFollowUp: (profileId: string, requestId: string) => void;
+}) {
+  const { data: requests, loading } = useRealtimeData("maintenance_requests", "created_at", false);
+  const { data: updates } = useRealtimeData("maintenance_updates", "created_at", true);
+  const { data: profiles } = useRealtimeData("profiles");
+  const { data: staff } = useRealtimeData("staff");
+  const [subject, setSubject] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<"low" | "normal" | "high" | "urgent">("normal");
+  const [submitting, setSubmitting] = useState(false);
+
+  const admins = profiles.filter((p: any) => p.role === "admin" || p.role === "administrator" || p.role === "staff");
+  const firstResponder = admins[0];
+  const myRequests = requests
+    .filter((r: any) => r.tenant_id === tenant.id || (!r.tenant_id && r.room_id === room?.id))
+    .sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+  const handleSubmit = async () => {
+    if (!subject.trim() || !room) return;
+    setSubmitting(true);
+    const payload = {
+      room_id: room.id,
+      tenant_id: tenant.id,
+      issue: subject.trim(),
+      subject: subject.trim(),
+      description: description.trim() || subject.trim(),
+      priority,
+      status: "pending" as const,
+      date_reported: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from("maintenance_requests")
+      .insert(payload)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      alert("Failed to submit request: " + error.message);
+    } else {
+      const requestId = data?.id;
+      if (requestId) {
+        await supabase.from("maintenance_updates").insert({
+          maintenance_request_id: requestId,
+          author_id: tenant.profile_id,
+          message: "Request submitted by tenant.",
+          status: "pending"
+        });
+      }
+      await supabase.from("notifications").insert({
+        profile_id: null,
+        title: "New maintenance request",
+        body: `${tenant.name} submitted: ${subject.trim()}`,
+        category: "maintenance",
+        priority: priority === "urgent" ? "urgent" : "normal",
+        related_id: requestId || null
+      });
+      setSubject("");
+      setDescription("");
+      setPriority("normal");
+    }
+    setSubmitting(false);
+  };
+
+  const handleFollowUp = async (req: any) => {
+    if (!tenant.profile_id) return;
+    if (!firstResponder?.id) {
+      alert("No administrator or staff account is available to message yet.");
+      return;
+    }
+
+    const intro = `Follow-up for maintenance request: ${req.subject || req.issue || "Room issue"}`;
+    await supabase.from("messages").insert({
+      sender_id: tenant.profile_id,
+      receiver_id: firstResponder.id,
+      content: intro,
+      related_maintenance_request_id: req.id
+    });
+    onFollowUp(firstResponder.id, req.id);
+  };
+
+  if (!room) {
+    return (
+      <div className="mx-auto max-w-2xl rounded-2xl border border-dashed border-border p-12 text-center">
+        <p className="text-sm font-medium text-foreground">You are not assigned to a room.</p>
+        <p className="mt-1 text-xs text-muted-foreground">You must be assigned to a room to submit maintenance requests.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-border bg-card p-5"
+      >
+        <div className="mb-5 flex items-start gap-3">
+          <div className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
+            <Wrench size={19} />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold">Request maintenance for Room {room.number}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Every request stays in your history, even after room changes.</p>
+          </div>
+        </div>
+
+        <div className="grid gap-3">
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Subject, e.g. Broken AC"
+            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+          />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            placeholder="Add details, location, or when the issue happens..."
+            className="w-full resize-none rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+          />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex rounded-xl border border-border bg-background p-1">
+              {(["low", "normal", "high", "urgent"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPriority(value)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold capitalize transition ${priority === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={handleSubmit}
+              disabled={submitting || !subject.trim()}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-50"
+            >
+              <Send size={14} /> {submitting ? "Submitting..." : "Submit Request"}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h3 className="text-sm font-bold">Maintenance History</h3>
+          <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold uppercase text-muted-foreground">
+            {myRequests.length} total
+          </span>
+        </div>
+        
+        {loading ? (
+          <div className="px-5 py-8 text-center text-sm text-muted-foreground">Loading requests...</div>
+        ) : myRequests.length === 0 ? (
+          <div className="px-5 py-12 text-center text-sm text-muted-foreground">You have no maintenance requests.</div>
+        ) : (
+          <div className="divide-y divide-border">
+            {myRequests.map((req: any) => {
+              const normalizedStatus = normalizeMaintenanceStatus(req.status);
+              const requestUpdates = updates.filter((update: any) => update.maintenance_request_id === req.id);
+              const assignedStaff = staff.find((person: any) => person.id === req.assigned_staff_id || person.profile_id === req.assigned_staff_id);
+              const [originalDesc, adminReply] = (req.description || "").split("|||ADMIN_REPLY|||");
+              return (
+                <div key={req.id} className="px-5 py-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex gap-3">
+                      <div className={`grid size-9 shrink-0 place-items-center rounded-xl ${maintenanceStatusClass(normalizedStatus)}`}>
+                        {isMaintenanceOpen(normalizedStatus) ? <Clock size={16} /> : <CheckCircle2 size={16} />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">{req.subject || req.issue || originalDesc}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {new Date(req.created_at || new Date()).toLocaleDateString()} · Priority: {req.priority || "normal"}
+                        </p>
+                        {assignedStaff && (
+                          <p className="mt-1 text-xs text-muted-foreground">Assigned to {assignedStaff.name}</p>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`w-fit rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase ${maintenanceStatusClass(normalizedStatus)}`}>
+                      {maintenanceStatusLabel(normalizedStatus)}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-3 pl-0 sm:pl-12">
+                    <div className="rounded-xl border border-border bg-muted/30 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description</p>
+                      <p className="mt-1 text-sm">{originalDesc || req.issue}</p>
+                    </div>
+                    {adminReply && (
+                      <div className="rounded-xl border border-primary/10 bg-primary/5 p-3">
+                        <p className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                          <MessageSquare size={12}/> Admin Reply
+                        </p>
+                        <p className="text-sm text-foreground/80">{adminReply}</p>
+                      </div>
+                    )}
+                    {requestUpdates.length > 0 && (
+                      <div className="rounded-xl border border-border p-3">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Timeline</p>
+                        <div className="space-y-2">
+                          {requestUpdates.slice(0, 4).map((update: any) => (
+                            <div key={update.id} className="flex items-start gap-2 text-xs text-muted-foreground">
+                              <span className="mt-1 size-1.5 rounded-full bg-primary" />
+                              <span>{update.message} <span className="font-mono">({new Date(update.created_at).toLocaleDateString()})</span></span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleFollowUp(req)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-bold text-primary transition hover:bg-muted"
+                    >
+                      <MessageSquare size={14} /> Follow up in Messages
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -935,6 +1496,7 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
   const [uploading, setUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [pushStatus, setPushStatus] = useState("");
   
   const { data: profiles } = useRealtimeData("profiles");
   const realProfile = profiles.find((p: any) => p.id === user?.id) || user;
@@ -971,6 +1533,7 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
       updateData.pref_maintenance = formData.get("prefMaintenance") !== null;
       updateData.pref_announcements = formData.get("prefAnnouncements") !== null;
       updateData.pref_visitors = formData.get("prefVisitors") !== null;
+      updateData.pref_push = formData.get("prefPush") !== null;
 
     } else if (activeTab === "security") {
       const newPassword = formData.get("newPassword") as string;
@@ -1002,6 +1565,29 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
       alert("Failed to save changes. Please try again.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleEnablePush = async () => {
+    if (!user?.id) return;
+    setPushStatus("Requesting browser permission...");
+    try {
+      const result = await registerPushSubscription(user.id);
+      if (!result.ok) {
+        setPushStatus(result.reason || "Push notifications are not available.");
+        return;
+      }
+
+      await supabase.from("push_subscriptions").insert({
+        profile_id: user.id,
+        endpoint: result.endpoint || "browser-permission-granted",
+        subscription: { endpoint: result.endpoint || "browser-permission-granted" }
+      });
+      await supabase.from("profiles").update({ pref_push: true }).eq("id", user.id);
+      setPushStatus("Browser push is enabled for this device.");
+    } catch (error) {
+      console.error("Unable to enable push notifications:", error);
+      setPushStatus("Push setup failed. In-app alerts will still work.");
     }
   };
 
@@ -1159,6 +1745,7 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                     { title: "Maintenance Updates", desc: "Receive updates on your maintenance requests.", name: "prefMaintenance", dbKey: "pref_maintenance" as keyof typeof realProfile },
                     { title: "House Announcements", desc: "Stay informed about general house news.", name: "prefAnnouncements", dbKey: "pref_announcements" as keyof typeof realProfile },
                     { title: "Visitor Approvals", desc: "Get alerts when your visitor pass is approved.", name: "prefVisitors", dbKey: "pref_visitors" as keyof typeof realProfile },
+                    { title: "Browser Push", desc: "Allow this device to receive emergency browser alerts when supported.", name: "prefPush", dbKey: "pref_push" as keyof typeof realProfile },
                   ].map((item, i) => (
                     <label key={i} className="flex items-start gap-3 p-4 rounded-xl border border-border hover:bg-muted/50 cursor-pointer transition">
                       <input type="checkbox" name={item.name} defaultChecked={realProfile?.[item.dbKey] ?? true} className="mt-1 w-4 h-4 rounded text-primary focus:ring-primary" />
@@ -1168,6 +1755,22 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                       </div>
                     </label>
                   ))}
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-foreground">Enable browser push on this device</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">Urgent alerts still appear in-app if browser permission is denied.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleEnablePush}
+                        className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
+                      >
+                        Enable Push
+                      </button>
+                    </div>
+                    {pushStatus && <p className="mt-3 text-xs text-muted-foreground">{pushStatus}</p>}
+                  </div>
                 </div>
               </div>
             )}
@@ -1213,7 +1816,19 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
   );
 }
 
-function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId }: { currentUserId?: string, activeChatUserId: string | null, setActiveChatUserId: (id: string | null) => void }) {
+function MessagesSection({
+  currentUserId,
+  activeChatUserId,
+  setActiveChatUserId,
+  maintenanceContextId,
+  clearMaintenanceContext,
+}: {
+  currentUserId?: string;
+  activeChatUserId: string | null;
+  setActiveChatUserId: (id: string | null) => void;
+  maintenanceContextId?: string | null;
+  clearMaintenanceContext?: () => void;
+}) {
   const { data: allMessages } = useRealtimeData("messages", "created_at", true);
   const { data: profiles } = useRealtimeData("profiles");
   
@@ -1230,7 +1845,8 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
       const { error } = await supabase.from("messages").insert({
         sender_id: currentUserId,
         receiver_id: activeChatUserId,
-        content: base64
+        content: base64,
+        related_maintenance_request_id: maintenanceContextId || null
       });
       if (error) alert("Failed to send image");
     } catch (err) {
@@ -1272,8 +1888,25 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
     const { error } = await supabase.from("messages").insert({
       sender_id: currentUserId,
       receiver_id: activeChatUserId,
-      content: newMessage
+      content: newMessage,
+      related_maintenance_request_id: maintenanceContextId || null
     });
+    if (error) alert("Failed to send message: " + error.message);
+    else {
+      setNewMessage("");
+      setShowEmoji(false);
+    }
+    setSending(false);
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row h-[75vh] md:h-[80vh] rounded-2xl border border-border bg-card overflow-hidden max-w-6xl">
+      <div className={`${activeChatUserId ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 border-b md:border-b-0 md:border-r border-border bg-muted/10 flex-col h-full`}>
+        <div className="p-4 border-b border-border">
+          <h3 className="font-['Libre_Baskerville'] font-bold text-lg tracking-tight">Conversations</h3>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {partners.length === 0 ? (
     if (error) alert("Failed to send message: " + error.message);
     else {
       setNewMessage("");
@@ -1298,9 +1931,13 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
                 onClick={() => setActiveChatUserId(p.id)}
                 className={`w-full flex items-center gap-3 p-3 rounded-xl transition ${activeChatUserId === p.id ? "bg-primary/10 text-primary" : "hover:bg-muted/50"}`}
               >
-                <div className="grid size-10 place-items-center rounded-full bg-primary/20 text-primary shrink-0">
-                  <User size={16} />
-                </div>
+                {p.avatar_url ? (
+                  <img src={p.avatar_url} alt="Avatar" className="size-10 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="grid size-10 place-items-center rounded-full bg-primary/20 text-primary shrink-0">
+                    <User size={16} />
+                  </div>
+                )}
                 <div className="text-left overflow-hidden">
                   <p className="font-bold text-sm truncate">{p.full_name}</p>
                 </div>
@@ -1320,9 +1957,13 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
               >
                 <ChevronLeft size={20} />
               </button>
-              <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary shrink-0">
-                <User size={16} />
-              </div>
+              {activePartner.avatar_url ? (
+                <img src={activePartner.avatar_url} alt="Avatar" className="size-10 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary shrink-0">
+                  <User size={16} />
+                </div>
+              )}
               <div className="overflow-hidden">
                 <p className="font-bold truncate">{activePartner.full_name}</p>
                 <p className="text-xs text-muted-foreground">Tenant</p>
@@ -1330,6 +1971,24 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 flex flex-col">
+              {maintenanceContextId && (
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-primary">Maintenance follow-up</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Messages you send now will be linked to request {maintenanceContextId.slice(0, 8)}.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearMaintenanceContext}
+                      className="rounded-full p-1 text-muted-foreground hover:bg-muted"
+                      aria-label="Clear maintenance context"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
               {chatHistory.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
                   <MessageSquare size={32} className="mb-3 opacity-20" />
@@ -1338,22 +1997,36 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
               ) : (
                 chatHistory.map((msg: any) => {
                   const isMe = msg.sender_id === currentUserId;
+                  const senderProfile = isMe ? profiles.find((p: any) => p.id === currentUserId) : activePartner;
+                  const avatarUrl = senderProfile?.avatar_url;
+
                   return (
-                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[75%] rounded-2xl px-5 py-3 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted border border-border rounded-bl-sm"}`}>
-                        {msg.content.startsWith("data:image/") ? (
-                          <img src={msg.content} alt="Attachment" className="rounded-xl max-h-64 object-cover" />
-                        ) : (
-                          <p>{msg.content}</p>
-                        )}
-                        <p className={`text-[10px] mt-1 text-right flex items-center justify-end gap-1 ${isMe ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                          {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          {isMe && (
-                            <span className={msg.is_read ? "text-blue-200" : "opacity-50"} title={msg.is_read ? "Seen" : "Sent"}>
-                              <CheckCheck size={12} />
-                            </span>
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} mb-4`}>
+                      <div className={`flex gap-3 max-w-[85%] ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                        <div className="shrink-0 mt-auto hidden sm:block">
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt="Avatar" className="size-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="grid size-8 place-items-center rounded-full bg-primary/10 text-primary">
+                              <User size={14} />
+                            </div>
                           )}
-                        </p>
+                        </div>
+                        <div className={`rounded-2xl px-5 py-3 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted border border-border rounded-bl-sm"}`}>
+                          {msg.content.startsWith("data:image/") ? (
+                            <img src={msg.content} alt="Attachment" className="rounded-xl max-h-64 object-cover" />
+                          ) : (
+                            <p>{msg.content}</p>
+                          )}
+                          <p className={`text-[10px] mt-1 text-right flex items-center gap-1 ${isMe ? "justify-end text-primary-foreground/70" : "justify-start text-muted-foreground"}`}>
+                            {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            {isMe && (
+                              <span className={msg.is_read ? "text-blue-200" : "opacity-50"} title={msg.is_read ? "Seen" : "Sent"}>
+                                <CheckCheck size={12} />
+                              </span>
+                            )}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   );
