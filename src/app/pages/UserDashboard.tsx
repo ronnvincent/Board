@@ -34,6 +34,7 @@ import {
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
 import { useAuth } from "../context/AuthContext";
+import { useSettings } from "../context/SettingsContext";
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
 import ExploreRooms, { LocationMapModal } from "./ExploreRooms";
@@ -159,6 +160,7 @@ function UnassignedPlaceholder() {
 }
 
 function OverviewSection({ userName, tenant, room, onNavigate }: { userName: string, tenant: any, room: any, onNavigate: (tab: string) => void }) {
+  const { settings } = useSettings();
   const { data: maintenance } = useRealtimeData("maintenance_requests");
   const { data: houses } = useRealtimeData("houses");
   const { data: notices } = useRealtimeData("notices", "created_at", true);
@@ -344,6 +346,37 @@ function OverviewSection({ userName, tenant, room, onNavigate }: { userName: str
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
         <div className="space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-border bg-card p-5"
+          >
+            <div className="flex items-center gap-3 mb-4 border-b border-border pb-3">
+              <Shield size={18} className="text-primary" />
+              <h3 className="font-bold text-lg">House Policies</h3>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Gate Curfew</p>
+                <p className="text-sm font-medium">
+                  {settings?.curfewEnabled ? `🌙 ${settings.curfewStart} - ${settings.curfewEnd}` : "✅ No Curfew"}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Quiet Hours</p>
+                <p className="text-sm font-medium">
+                  {settings?.quietHoursEnabled ? `🤫 ${settings.quietHoursStart} - ${settings.quietHoursEnd}` : "✅ Not Enforced"}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 sm:col-span-2">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Visitor Policy</p>
+                <p className="text-sm font-medium">
+                  {settings?.allowVisitors ? "✅ Visitors are allowed (subject to gate pass)" : "🚫 No visitors allowed currently"}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+          
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}

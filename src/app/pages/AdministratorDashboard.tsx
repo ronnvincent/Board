@@ -1350,7 +1350,14 @@ function SettingsPlaceholder() {
     allowRegistration: true,
     maintenanceMode: false,
     darkModeDefault: false,
-    themeColor: DEFAULT_THEME_COLOR
+    themeColor: DEFAULT_THEME_COLOR,
+    curfewEnabled: false,
+    curfewStart: "22:00",
+    curfewEnd: "05:00",
+    allowVisitors: true,
+    quietHoursEnabled: false,
+    quietHoursStart: "22:00",
+    quietHoursEnd: "07:00",
   };
 
   const [settings, setSettings] = useState(() => {
@@ -1387,6 +1394,13 @@ function SettingsPlaceholder() {
               ? parsed.dark_mode_default
               : defaultSettings.darkModeDefault,
         themeColor: parsed.themeColor ?? parsed.theme_color ?? defaultSettings.themeColor,
+        curfewEnabled: parsed.curfewEnabled ?? parsed.curfew_enabled ?? defaultSettings.curfewEnabled,
+        curfewStart: parsed.curfewStart ?? parsed.curfew_start ?? defaultSettings.curfewStart,
+        curfewEnd: parsed.curfewEnd ?? parsed.curfew_end ?? defaultSettings.curfewEnd,
+        allowVisitors: parsed.allowVisitors ?? parsed.allow_visitors ?? defaultSettings.allowVisitors,
+        quietHoursEnabled: parsed.quietHoursEnabled ?? parsed.quiet_hours_enabled ?? defaultSettings.quietHoursEnabled,
+        quietHoursStart: parsed.quietHoursStart ?? parsed.quiet_hours_start ?? defaultSettings.quietHoursStart,
+        quietHoursEnd: parsed.quietHoursEnd ?? parsed.quiet_hours_end ?? defaultSettings.quietHoursEnd,
       };
     } catch {
       return defaultSettings;
@@ -1429,6 +1443,13 @@ function SettingsPlaceholder() {
                 ? parsed.dark_mode_default
                 : defaultSettings.darkModeDefault,
           themeColor: parsed.themeColor ?? parsed.theme_color ?? defaultSettings.themeColor,
+          curfewEnabled: parsed.curfewEnabled ?? parsed.curfew_enabled ?? defaultSettings.curfewEnabled,
+          curfewStart: parsed.curfewStart ?? parsed.curfew_start ?? defaultSettings.curfewStart,
+          curfewEnd: parsed.curfewEnd ?? parsed.curfew_end ?? defaultSettings.curfewEnd,
+          allowVisitors: parsed.allowVisitors ?? parsed.allow_visitors ?? defaultSettings.allowVisitors,
+          quietHoursEnabled: parsed.quietHoursEnabled ?? parsed.quiet_hours_enabled ?? defaultSettings.quietHoursEnabled,
+          quietHoursStart: parsed.quietHoursStart ?? parsed.quiet_hours_start ?? defaultSettings.quietHoursStart,
+          quietHoursEnd: parsed.quietHoursEnd ?? parsed.quiet_hours_end ?? defaultSettings.quietHoursEnd,
         });
       } catch {
         // Ignore invalid stored values.
@@ -1447,6 +1468,13 @@ function SettingsPlaceholder() {
       maintenance_mode: nextSettings.maintenanceMode,
       dark_mode_default: nextSettings.darkModeDefault,
       theme_color: nextSettings.themeColor,
+      curfew_enabled: nextSettings.curfewEnabled,
+      curfew_start: nextSettings.curfewStart,
+      curfew_end: nextSettings.curfewEnd,
+      allow_visitors: nextSettings.allowVisitors,
+      quiet_hours_enabled: nextSettings.quietHoursEnabled,
+      quiet_hours_start: nextSettings.quietHoursStart,
+      quiet_hours_end: nextSettings.quietHoursEnd,
     };
 
     try {
@@ -1523,6 +1551,7 @@ function SettingsPlaceholder() {
       <div className="grid lg:grid-cols-[240px_1fr] gap-6 sm:gap-8">
         <div className="flex flex-col gap-2">
           <button onClick={() => setActiveTab("general")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "general" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>General</button>
+          <button onClick={() => setActiveTab("policies")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "policies" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>House Policies</button>
           <button onClick={() => setActiveTab("system")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "system" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>System Config</button>
           <button onClick={() => setActiveTab("appearance")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "appearance" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>Appearance</button>
         </div>

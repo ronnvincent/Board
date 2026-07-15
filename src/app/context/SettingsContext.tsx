@@ -9,6 +9,13 @@ export interface SystemSettings {
   maintenance_mode: boolean;
   dark_mode_default: boolean;
   theme_color: string;
+  curfew_enabled: boolean;
+  curfew_start: string;
+  curfew_end: string;
+  allow_visitors: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
 }
 
 export const DEFAULT_THEME_COLOR = "#1f5149";
@@ -19,7 +26,14 @@ const defaultSettings: SystemSettings = {
   allow_registration: true,
   maintenance_mode: false,
   dark_mode_default: false,
-  theme_color: DEFAULT_THEME_COLOR
+  theme_color: DEFAULT_THEME_COLOR,
+  curfew_enabled: false,
+  curfew_start: "22:00",
+  curfew_end: "05:00",
+  allow_visitors: true,
+  quiet_hours_enabled: false,
+  quiet_hours_start: "22:00",
+  quiet_hours_end: "07:00",
 };
 
 export const SETTINGS_STORAGE_KEY = "board_admin_settings";
@@ -51,6 +65,28 @@ const normalizeSettings = (value?: Partial<SystemSettings> | null): SystemSettin
           ? (normalized as any).darkModeDefault
           : defaultSettings.dark_mode_default,
     theme_color: normalized.theme_color ?? (normalized as any).themeColor ?? defaultSettings.theme_color,
+    curfew_enabled:
+      typeof (normalized as any).curfew_enabled === "boolean"
+        ? (normalized as any).curfew_enabled
+        : typeof (normalized as any).curfewEnabled === "boolean"
+          ? (normalized as any).curfewEnabled
+          : defaultSettings.curfew_enabled,
+    curfew_start: normalized.curfew_start ?? (normalized as any).curfewStart ?? defaultSettings.curfew_start,
+    curfew_end: normalized.curfew_end ?? (normalized as any).curfewEnd ?? defaultSettings.curfew_end,
+    allow_visitors:
+      typeof (normalized as any).allow_visitors === "boolean"
+        ? (normalized as any).allow_visitors
+        : typeof (normalized as any).allowVisitors === "boolean"
+          ? (normalized as any).allowVisitors
+          : defaultSettings.allow_visitors,
+    quiet_hours_enabled:
+      typeof (normalized as any).quiet_hours_enabled === "boolean"
+        ? (normalized as any).quiet_hours_enabled
+        : typeof (normalized as any).quietHoursEnabled === "boolean"
+          ? (normalized as any).quietHoursEnabled
+          : defaultSettings.quiet_hours_enabled,
+    quiet_hours_start: normalized.quiet_hours_start ?? (normalized as any).quietHoursStart ?? defaultSettings.quiet_hours_start,
+    quiet_hours_end: normalized.quiet_hours_end ?? (normalized as any).quietHoursEnd ?? defaultSettings.quiet_hours_end,
   };
 };
 
