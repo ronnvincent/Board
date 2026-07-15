@@ -218,15 +218,26 @@ function RoomsSection() {
 
 function TenantsSection() {
   const { data: tenants, loading } = useRealtimeData("tenants", "name", true);
+  const { data: profiles } = useRealtimeData("profiles");
   const [adding, setAdding] = useState(false);
+  const [newTenantName, setNewTenantName] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState("");
+
+  // Only show profiles that are 'user' and not already assigned to a tenant
+  const availableProfiles = profiles.filter(
+    (p) => p.role === "user" && !tenants.find((t) => t.profile_id === p.id)
+  );
 
   const handleAddTenant = async () => {
-    setAdding(true);
-    const tenantName = prompt("Enter new tenant name:");
-    if (tenantName) {
-      await supabase.from("tenants").insert({ name: tenantName, rent_status: "Due" });
-    }
+    if (!newTenantName.trim()) return;
+    await supabase.from("tenants").insert({ 
+      name: newTenantName, 
+      rent_status: "Due",
+      profile_id: selectedProfileId || null
+    });
     setAdding(false);
+    setNewTenantName("");
+    setSelectedProfileId("");
   };
 
   const handleUpdateRent = async (id: string, currentStatus: string) => {
@@ -245,13 +256,47 @@ function TenantsSection() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">All tenants and their rent status.</p>
         <button 
-          onClick={handleAddTenant}
-          disabled={adding}
+          onClick={() => setAdding(!adding)}
           className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-bold transition hover:bg-muted"
         >
-          <UserPlus size={15} /> Add Tenant
+          <UserPlus size={15} /> {adding ? "Cancel" : "Add Tenant"}
         </button>
       </div>
+
+      {adding && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="rounded-2xl border border-border bg-card p-5"
+        >
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input 
+              type="text" 
+              placeholder="Tenant Name" 
+              value={newTenantName}
+              onChange={(e) => setNewTenantName(e.target.value)}
+              className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+            />
+            <select
+              value={selectedProfileId}
+              onChange={(e) => setSelectedProfileId(e.target.value)}
+              className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+            >
+              <option value="">No Account Link (Guest)</option>
+              {availableProfiles.map((p) => (
+                <option key={p.id} value={p.id}>Link to Account: {p.full_name}</option>
+              ))}
+            </select>
+            <button 
+              onClick={handleAddTenant}
+              disabled={!newTenantName.trim()}
+              className="rounded-xl bg-primary px-6 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
+            >
+              Save
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading tenants...</p>
@@ -274,7 +319,10 @@ function TenantsSection() {
             <tbody className="divide-y divide-border">
               {tenants.map((t) => (
                 <tr key={t.id} className="hover:bg-muted/20 transition">
-                  <td className="px-5 py-3.5 font-medium">{t.name}</td>
+                  <td className="px-5 py-3.5 font-medium">
+                    {t.name}
+                    {t.profile_id && <span className="ml-2 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">Linked</span>}
+                  </td>
                   <td className="px-5 py-3.5 text-muted-foreground">{t.room_id || "Unassigned"}</td>
                   <td className="px-5 py-3.5">
                     <button 

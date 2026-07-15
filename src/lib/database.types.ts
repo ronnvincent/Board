@@ -100,6 +100,7 @@ export interface Database {
           id: string
           name: string
           room_id: string | null
+          profile_id: string | null
           rent_status: 'Paid' | 'Due' | 'Overdue'
           due_date: string | null
           created_at: string
@@ -108,6 +109,7 @@ export interface Database {
           id?: string
           name: string
           room_id?: string | null
+          profile_id?: string | null
           rent_status?: 'Paid' | 'Due' | 'Overdue'
           due_date?: string | null
           created_at?: string
@@ -116,6 +118,7 @@ export interface Database {
           id?: string
           name?: string
           room_id?: string | null
+          profile_id?: string | null
           rent_status?: 'Paid' | 'Due' | 'Overdue'
           due_date?: string | null
           created_at?: string
