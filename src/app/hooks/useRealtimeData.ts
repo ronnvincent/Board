@@ -39,8 +39,9 @@ export function useRealtimeData<T extends TableName>(
     fetchInitialData();
 
     // Set up real-time subscription
+    const channelId = `public:${tableName}-${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
-      .channel(`public:${tableName}`)
+      .channel(channelId)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: tableName },
