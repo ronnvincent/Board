@@ -45,21 +45,21 @@ export default function UserDashboard() {
   const myTenant = tenants.find((t) => t.profile_id === user?.id);
   const myRoom = myTenant ? rooms.find((r) => r.id === myTenant.room_id) : null;
 
-  const filteredNavItems = myTenant 
-    ? navItems 
-    : navItems.filter(item => item.id === "dashboard" || item.id === "profile");
-
   return (
     <DashboardLayout
-      navItems={filteredNavItems}
+      navItems={navItems}
       activeNav={activeNav}
       onNavChange={setActiveNav}
-      pageTitle={filteredNavItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
+      pageTitle={navItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
     >
       {!myTenant && !tenantsLoading && activeNav === "dashboard" && (
         <div className="-mt-8">
           <ExploreRooms />
         </div>
+      )}
+
+      {!myTenant && !tenantsLoading && activeNav !== "dashboard" && activeNav !== "profile" && (
+        <UnassignedPlaceholder />
       )}
       
       {activeNav === "profile" && <ProfilePlaceholder />}
@@ -78,7 +78,23 @@ export default function UserDashboard() {
   );
 }
 
-// UnassignedState component removed in favor of ExploreRooms
+function UnassignedPlaceholder() {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex h-[60vh] flex-col items-center justify-center text-center p-8 rounded-2xl border border-dashed border-border"
+    >
+      <div className="grid size-16 place-items-center rounded-full bg-primary/10 text-primary mb-6">
+        <BedDouble size={24} />
+      </div>
+      <h2 className="font-['Libre_Baskerville'] text-2xl tracking-tight mb-2">Room Required</h2>
+      <p className="text-muted-foreground max-w-md">
+        This feature is only available to residents who have been assigned to a boarding house and room. Please check the Dashboard to explore available rooms, or wait for an administrator to assign you.
+      </p>
+    </motion.div>
+  );
+}
 
 function OverviewSection({ userName, tenant, room }: { userName: string, tenant: any, room: any }) {
   const { data: maintenance } = useRealtimeData("maintenance_requests");
