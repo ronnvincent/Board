@@ -1020,7 +1020,7 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
             </div>
           )}
 
-          <div>
+          <form onSubmit={handleSave}>
             {activeTab === "personal" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div>
@@ -1045,24 +1045,23 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
 
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold pt-4 border-t border-border">Basic Details</h3>
-                  <p className="text-xs text-muted-foreground -mt-2 mb-2">Note: These fields are read-only.</p>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">First Name</label>
-                      <input type="text" defaultValue={user?.fullName?.split(" ")[0] || ""} className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly />
+                      <input type="text" defaultValue={user?.fullName?.split(" ")[0] || ""} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">Last Name</label>
-                      <input type="text" defaultValue={user?.fullName?.split(" ")[1] || ""} className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly />
+                      <input type="text" defaultValue={user?.fullName?.split(" ")[1] || ""} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Email Address</label>
-                    <input type="email" defaultValue={user?.email || ""} className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly />
+                    <input type="email" defaultValue={user?.email || ""} className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly title="Contact support to change email" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
-                    <input type="tel" defaultValue="+1 (555) 000-0000" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed opacity-80" readOnly />
+                    <input type="tel" defaultValue="+1 (555) 000-0000" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                 </div>
               </div>
@@ -1071,21 +1070,21 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
             {activeTab === "emergency" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <h3 className="text-lg font-bold">Emergency Contact</h3>
-                <p className="text-sm text-muted-foreground -mt-4 mb-4">Read-only information.</p>
+                <p className="text-sm text-muted-foreground -mt-4 mb-4">Who should we contact in case of an emergency?</p>
                 
-                <div className="space-y-4 opacity-80">
+                <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Contact Name</label>
-                    <input type="text" placeholder="Jane Doe" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                    <input type="text" placeholder="Jane Doe" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">Relationship</label>
-                      <input type="text" placeholder="Mother, Spouse, etc." className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                      <input type="text" placeholder="Mother, Spouse, etc." className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
-                      <input type="tel" placeholder="+1 (555) 000-0000" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                      <input type="tel" placeholder="+1 (555) 000-0000" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                   </div>
                 </div>
@@ -1095,17 +1094,17 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
             {activeTab === "preferences" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <h3 className="text-lg font-bold">Notification Preferences</h3>
-                <p className="text-sm text-muted-foreground -mt-4 mb-4">Currently disabled.</p>
+                <p className="text-sm text-muted-foreground -mt-4 mb-4">Choose how you want to be notified about house updates.</p>
                 
-                <div className="space-y-4 opacity-80">
+                <div className="space-y-4">
                   {[
                     { title: "Rent Reminders", desc: "Get notified when rent is due or overdue." },
                     { title: "Maintenance Updates", desc: "Receive updates on your maintenance requests." },
                     { title: "House Announcements", desc: "Stay informed about general house news." },
                     { title: "Visitor Approvals", desc: "Get alerts when your visitor pass is approved." },
                   ].map((item, i) => (
-                    <label key={i} className="flex items-start gap-3 p-4 rounded-xl border border-border bg-muted/30 cursor-not-allowed transition">
-                      <input type="checkbox" defaultChecked disabled className="mt-1 w-4 h-4 rounded text-primary focus:ring-primary cursor-not-allowed" />
+                    <label key={i} className="flex items-start gap-3 p-4 rounded-xl border border-border hover:bg-muted/50 cursor-pointer transition">
+                      <input type="checkbox" defaultChecked className="mt-1 w-4 h-4 rounded text-primary focus:ring-primary" />
                       <div>
                         <p className="text-sm font-bold text-foreground">{item.title}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
@@ -1119,20 +1118,20 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
             {activeTab === "security" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <h3 className="text-lg font-bold">Security</h3>
-                <p className="text-sm text-muted-foreground -mt-4 mb-4">Contact admin to change your password.</p>
+                <p className="text-sm text-muted-foreground -mt-4 mb-4">Update your password to keep your account secure.</p>
                 
-                <div className="space-y-4 opacity-80">
+                <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Current Password</label>
-                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">New Password</label>
-                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Confirm New Password</label>
-                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm outline-none cursor-not-allowed" readOnly />
+                    <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                 </div>
               </div>
@@ -1145,8 +1144,15 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                   <p className="text-sm font-bold mt-0.5">Room {room.room_number}</p>
                 </div>
               ) : <div />}
+              
+              <button 
+                type="submit" 
+                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition"
+              >
+                Save Changes
+              </button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>
