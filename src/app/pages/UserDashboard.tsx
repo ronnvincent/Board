@@ -104,11 +104,13 @@ function UnassignedPlaceholder() {
 function OverviewSection({ userName, tenant, room }: { userName: string, tenant: any, room: any }) {
   const { data: maintenance } = useRealtimeData("maintenance_requests");
   const { data: houses } = useRealtimeData("houses");
+  const { data: notices } = useRealtimeData("notices", "created_at", true);
   const [paying, setPaying] = useState(false);
   const [activeLocationHouse, setActiveLocationHouse] = useState<any>(null);
   // Only count open requests for THIS room
   const openRequests = maintenance.filter((m: any) => m.room_id === room?.id && m.status !== "done").length;
   const assignedHouse = houses.find((house: any) => house.id === room?.house_id);
+  const latestNotice = notices && notices.length > 0 ? notices[0] : null;
 
   return (
     <div className="space-y-8">
@@ -221,12 +223,27 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
           transition={{ delay: 0.4 }}
           className="rounded-2xl border border-border bg-card flex flex-col"
         >
-          <div className="border-b border-border px-5 py-4">
+          <div className="border-b border-border px-5 py-4 flex items-center justify-between">
             <h3 className="text-sm font-bold">Latest Announcement</h3>
           </div>
           <div className="p-5 flex-1 flex flex-col justify-center items-center text-center">
-            <Megaphone size={20} className="text-muted-foreground mb-2" />
-            <p className="text-sm font-medium text-muted-foreground">No new announcements</p>
+            {latestNotice ? (
+              <div className="flex flex-col items-center w-full max-w-sm">
+                <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary mb-3">
+                  <Megaphone size={18} />
+                </div>
+                <h4 className="font-bold text-base mb-1">{latestNotice.title}</h4>
+                <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{latestNotice.content}</p>
+                <p className="text-[10px] font-mono text-muted-foreground/60 uppercase mt-4">
+                  {new Date(latestNotice.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ) : (
+              <>
+                <Megaphone size={20} className="text-muted-foreground/30 mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">No new announcements</p>
+              </>
+            )}
           </div>
         </motion.div>
       </div>
