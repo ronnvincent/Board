@@ -274,8 +274,6 @@ export default function SignupForm({ onGoHome, onGoToLogin }: SignupFormProps) {
             Sign in
           </button>
         </motion.p>
-
-        </motion.p>
       </motion.div>
 
       {/* Mobile footer */}

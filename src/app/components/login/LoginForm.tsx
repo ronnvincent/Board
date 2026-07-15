@@ -283,8 +283,6 @@ export default function LoginForm({ onGoHome, onGoToSignup }: LoginFormProps) {
             Create one
           </button>
         </motion.p>
-
-        </motion.p>
       </motion.div>
 
       {/* Mobile footer */}
