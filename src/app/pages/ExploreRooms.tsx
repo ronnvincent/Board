@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { MapPin, Wifi, Wind, Bath, Search, ArrowRight, Building2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
