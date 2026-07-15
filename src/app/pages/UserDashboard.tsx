@@ -478,7 +478,9 @@ function MaintenanceSection({ room, tenant }: { room: any, tenant: any }) {
         ) : myRequests.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-muted-foreground">You have no maintenance requests.</div>
         ) : (
-          myRequests.map((req: any) => (
+          myRequests.map((req: any) => {
+            const [originalDesc, adminReply] = (req.description || "").split("|||ADMIN_REPLY|||");
+            return (
             <div key={req.id} className="flex flex-col px-5 py-4 gap-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -488,7 +490,7 @@ function MaintenanceSection({ room, tenant }: { room: any, tenant: any }) {
                     {req.status === "Done" || req.status === "done" ? <CheckCircle2 size={15} /> : <Clock size={15} />}
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{req.subject || req.description}</p>
+                    <p className="text-sm font-medium">{req.subject || originalDesc}</p>
                     <p className="text-xs text-muted-foreground">{new Date(req.created_at || new Date()).toLocaleDateString()}</p>
                   </div>
                 </div>
@@ -498,16 +500,17 @@ function MaintenanceSection({ room, tenant }: { room: any, tenant: any }) {
                 }`}>{req.status || "Open"}</span>
               </div>
               
-              {req.admin_reply && (
+              {adminReply && (
                 <div className="ml-11 p-3 rounded-xl bg-primary/5 border border-primary/10">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1 flex items-center gap-1">
                     <MessageSquare size={12}/> Admin Reply
                   </p>
-                  <p className="text-sm text-foreground/80">{req.admin_reply}</p>
+                  <p className="text-sm text-foreground/80">{adminReply}</p>
                 </div>
               )}
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

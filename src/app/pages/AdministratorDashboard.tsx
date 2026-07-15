@@ -1542,18 +1542,22 @@ function MaintenanceSection() {
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const [updating, setUpdating] = useState<string | null>(null);
 
-  const handleUpdate = async (reqId: string, newStatus: string) => {
-    setUpdating(reqId);
-    const text = replyText[reqId] || "";
+  const handleUpdate = async (req: any, newStatus: string) => {
+    setUpdating(req.id);
+    const text = replyText[req.id] || "";
     const updateData: any = { status: newStatus };
-    if (text.trim()) updateData.admin_reply = text;
+    
+    if (text.trim()) {
+      const originalDesc = (req.description || "").split("|||ADMIN_REPLY|||")[0];
+      updateData.description = `${originalDesc}|||ADMIN_REPLY|||${text}`;
+    }
 
-    const { error } = await supabase.from("maintenance_requests").update(updateData).eq("id", reqId);
+    const { error } = await supabase.from("maintenance_requests").update(updateData).eq("id", req.id);
     if (error) alert("Failed to update request: " + error.message);
     else {
       setReplyText(prev => {
         const next = { ...prev };
-        delete next[reqId];
+        delete next[req.id];
         return next;
       });
     }
@@ -1583,6 +1587,8 @@ function MaintenanceSection() {
             const room = rooms.find((r: any) => r.id === req.room_id);
             const house = houses.find((h: any) => h.id === room?.house_id);
 
+            const [originalDesc, adminReply] = (req.description || "").split("|||ADMIN_REPLY|||");
+
             return (
               <motion.div
                 key={req.id}
@@ -1592,7 +1598,7 @@ function MaintenanceSection() {
               >
                 <div className="border-b border-border p-5 flex flex-wrap gap-4 items-start justify-between bg-muted/20">
                   <div>
-                    <h3 className="font-bold text-lg mb-1">{req.subject || req.description}</h3>
+                    <h3 className="font-bold text-lg mb-1">{req.subject || originalDesc}</h3>
                     <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1 font-medium text-foreground"><User size={14}/> {profile?.full_name || "Unknown"}</span>
                       <span>•</span>
@@ -1615,15 +1621,15 @@ function MaintenanceSection() {
                 <div className="p-5">
                   <div className="mb-6 p-4 rounded-xl bg-muted/40 border border-border/50">
                     <p className="text-sm font-medium mb-2 text-muted-foreground uppercase text-[10px] tracking-wider font-mono">Original Description</p>
-                    <p className="text-sm">{req.description}</p>
+                    <p className="text-sm">{originalDesc}</p>
                   </div>
 
-                  {req.admin_reply && (
+                  {adminReply && (
                     <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
                       <p className="text-sm font-medium mb-2 text-primary uppercase text-[10px] tracking-wider font-mono flex items-center gap-1">
                         <MessageSquare size={12}/> Admin Reply
                       </p>
-                      <p className="text-sm">{req.admin_reply}</p>
+                      <p className="text-sm">{adminReply}</p>
                     </div>
                   )}
 
@@ -1633,20 +1639,20 @@ function MaintenanceSection() {
                       <input
                         type="text"
                         placeholder="Type a reply to the tenant..."
-                        value={replyText[req.id] !== undefined ? replyText[req.id] : (req.admin_reply || "")}
+                        value={replyText[req.id] !== undefined ? replyText[req.id] : (adminReply || "")}
                         onChange={(e) => setReplyText({ ...replyText, [req.id]: e.target.value })}
                         className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary transition"
                       />
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleUpdate(req.id, "In Progress")}
+                          onClick={() => handleUpdate(req, "In Progress")}
                           disabled={updating === req.id}
                           className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100 transition whitespace-nowrap disabled:opacity-50"
                         >
                           Mark In Progress
                         </button>
                         <button
-                          onClick={() => handleUpdate(req.id, "Done")}
+                          onClick={() => handleUpdate(req, "Done")}
                           disabled={updating === req.id}
                           className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-100 transition whitespace-nowrap disabled:opacity-50"
                         >
