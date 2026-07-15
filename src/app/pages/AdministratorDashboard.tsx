@@ -1257,7 +1257,7 @@ function SecurityGateSection() {
 
           <div className="w-full max-w-sm">
             <p className="text-xs text-center text-muted-foreground mb-3 font-bold uppercase tracking-wider">Or verify manually</p>
-            <form onSubmit={handleScan} className="flex gap-2">
+            <form onSubmit={handleScan} className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                 <input
@@ -1271,7 +1271,7 @@ function SecurityGateSection() {
               <button
                 type="submit"
                 disabled={!scanCode.trim()}
-                className="rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
+                className="w-full sm:w-auto rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
               >
                 Verify
               </button>
@@ -1323,7 +1323,7 @@ function SecurityGateSection() {
               </div>
             </div>
 
-            <div className="grid gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-black/50 mb-1">Date of Visit</p>
                 <p className="font-medium text-black/80">{new Date(matchedVisitor.date_of_visit).toLocaleString()}</p>
@@ -1366,8 +1366,8 @@ function SecurityGateSection() {
               <p className="text-sm font-medium text-foreground">No visitors approved yet</p>
             </div>
           ) : (
-            <div className="divide-y divide-border overflow-x-auto">
-              <table className="w-full text-left text-sm">
+            <div className="w-full min-w-0 overflow-x-auto divide-y divide-border">
+              <table className="w-full min-w-[600px] text-left text-sm">
                 <thead className="bg-muted/30">
                   <tr>
                     <th className="px-6 py-4 font-bold text-muted-foreground">Visitor Name</th>
