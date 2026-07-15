@@ -1231,6 +1231,14 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
     (notice) => !notice.house_id || notice.house_id === houseId
   );
 
+  // Debug logging to help diagnose announcement visibility issues
+  console.log('CommunitySection Debug:', {
+    totalNotices: notices.length,
+    houseId,
+    houseNoticesCount: houseNotices.length,
+    notices: notices.map(n => ({ id: n.id, title: n.title, house_id: n.house_id }))
+  });
+
   const handlePostItem = async () => {
     if (!newItem.trim() || !newPrice || !profileId) return;
     setIsPosting(true);
