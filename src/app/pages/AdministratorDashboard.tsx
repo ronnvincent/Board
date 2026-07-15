@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Settings,
   Shield,
+  ShieldCheck,
   Users,
   UserPlus,
   Activity,
@@ -22,6 +23,9 @@ import {
   X,
   Info,
   CreditCard,
+  Search,
+  CheckCircle2,
+  XCircle
 } from "lucide-react";
 import { useEffect } from "react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
@@ -30,6 +34,7 @@ import RoleBadge from "../components/dashboard/RoleBadge";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={18} />, id: "dashboard" },
+  { label: "Security Gate", icon: <ShieldCheck size={18} />, id: "security" },
   { label: "Admissions", icon: <Activity size={18} />, id: "admissions" },
   { label: "Admins", icon: <Shield size={18} />, id: "admins" },
   { label: "All Houses", icon: <Building2 size={18} />, id: "houses" },
@@ -75,6 +80,7 @@ export default function AdministratorDashboard() {
       pageTitle={navItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
     >
       {activeNav === "dashboard" && <OverviewSection />}
+      {activeNav === "security" && <SecurityGateSection />}
       {activeNav === "admissions" && <AdmissionsSection />}
       {activeNav === "admins" && <AdminsSection />}
       {activeNav === "houses" && <HousesSection />}
@@ -1107,6 +1113,140 @@ function SettingsPlaceholder() {
       <div className="grid size-16 place-items-center rounded-2xl bg-muted mb-4"><Settings size={24} className="text-muted-foreground" /></div>
       <h3 className="text-lg font-bold">Platform Settings</h3>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">Global platform settings will be configurable once the backend is connected.</p>
+    </div>
+  );
+}
+
+function SecurityGateSection() {
+  const { data: visitors } = useRealtimeData("visitors");
+  const [scanCode, setScanCode] = useState("");
+  const [lastScanned, setLastScanned] = useState<string | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+
+  const matchedVisitor = visitors.find((v) => v.id === lastScanned);
+
+  const handleScan = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLastScanned(scanCode.trim());
+    setScanCode("");
+  };
+
+  const handleApprove = async () => {
+    if (!matchedVisitor) return;
+    setIsApproving(true);
+    const { error } = await supabase
+      .from("visitors")
+      .update({ status: "approved" })
+      .eq("id", matchedVisitor.id);
+    
+    if (error) {
+      alert("Failed to approve pass: " + error.message);
+    }
+    setIsApproving(false);
+  };
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2 max-w-5xl">
+      <div className="space-y-6">
+        <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Scanner Simulator</h3>
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+          <p className="text-sm text-muted-foreground mb-6">
+            Type or paste the Gate Pass ID found on the visitor's QR code.
+          </p>
+          <form onSubmit={handleScan} className="flex flex-col gap-3">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <input
+                type="text"
+                placeholder="Enter Gate Pass ID..."
+                value={scanCode}
+                onChange={(e) => setScanCode(e.target.value)}
+                className="w-full rounded-2xl border border-border bg-background py-4 pl-12 pr-4 text-sm font-mono outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={!scanCode.trim()}
+              className="rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
+            >
+              Verify Pass
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Verification Result</h3>
+        
+        {!lastScanned ? (
+          <div className="rounded-3xl border border-dashed border-border p-12 text-center bg-card">
+            <ShieldCheck size={48} className="mx-auto mb-4 text-muted-foreground/30" />
+            <p className="text-sm font-medium text-foreground">Waiting for scan...</p>
+            <p className="text-xs text-muted-foreground mt-1">Scan a code to view visitor details.</p>
+          </div>
+        ) : !matchedVisitor ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center"
+          >
+            <XCircle size={48} className="mx-auto mb-4 text-red-500" />
+            <h4 className="font-bold text-xl text-red-900 mb-2">Invalid Gate Pass</h4>
+            <p className="text-sm text-red-700">No visitor found with ID: <br/><span className="font-mono text-xs">{lastScanned}</span></p>
+          </motion.div>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-3xl border p-6 ${
+              matchedVisitor.status === "approved" 
+                ? "border-emerald-200 bg-emerald-50" 
+                : "border-blue-200 bg-blue-50"
+            }`}
+          >
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-black/10">
+              <div className={`grid size-12 place-items-center rounded-2xl ${
+                matchedVisitor.status === "approved" ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600"
+              }`}>
+                {matchedVisitor.status === "approved" ? <CheckCircle2 size={24} /> : <ShieldCheck size={24} />}
+              </div>
+              <div>
+                <h4 className="font-bold text-xl">{matchedVisitor.visitor_name}</h4>
+                <p className={`text-sm ${matchedVisitor.status === "approved" ? "text-emerald-700" : "text-blue-700"}`}>
+                  {matchedVisitor.status === "approved" ? "Entry Approved" : "Valid Pass (Pending)"}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 mb-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-black/50 mb-1">Date of Visit</p>
+                <p className="font-medium text-black/80">{new Date(matchedVisitor.date_of_visit).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-black/50 mb-1">Pass ID</p>
+                <p className="font-mono text-xs text-black/60 break-all">{matchedVisitor.id}</p>
+              </div>
+            </div>
+
+            {matchedVisitor.status === "pending" && (
+              <button
+                onClick={handleApprove}
+                disabled={isApproving}
+                className="w-full rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                {isApproving ? "Approving..." : "Approve Entry"}
+              </button>
+            )}
+            
+            {matchedVisitor.status === "approved" && (
+              <div className="rounded-2xl bg-emerald-100/50 p-4 text-center">
+                <p className="text-sm font-bold text-emerald-700">Visitor is cleared for entry.</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

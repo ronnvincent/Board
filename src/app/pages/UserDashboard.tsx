@@ -15,7 +15,8 @@ import {
   Image as ImageIcon,
   Store,
   MessageSquare,
-  MapPin
+  MapPin,
+  QrCode
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -24,6 +25,7 @@ import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
 import ExploreRooms, { LocationMapModal } from "./ExploreRooms";
 import MockPaymentGateway from "../components/shared/MockPaymentGateway";
+import { QRCodeSVG } from "qrcode.react";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={18} />, id: "dashboard" },
@@ -548,6 +550,7 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
   const { data: visitors } = useRealtimeData("visitors");
   const [visitorName, setVisitorName] = useState("");
   const [visitDate, setVisitDate] = useState("");
+  const [selectedPass, setSelectedPass] = useState<any | null>(null);
 
   const [isRegistering, setIsRegistering] = useState(false);
 
@@ -629,20 +632,75 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
                 <p className="font-bold">{v.visitor_name}</p>
                 <p className="text-xs text-muted-foreground">{new Date(v.date_of_visit).toLocaleString()}</p>
               </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                v.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-50 text-amber-600'
-              }`}>
-                {v.status}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                  v.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-50 text-amber-600'
+                }`}>
+                  {v.status}
+                </span>
+                <button
+                  onClick={() => setSelectedPass(v)}
+                  className="rounded-full bg-primary/10 p-2 text-primary hover:bg-primary/20 transition"
+                  title="View Gate Pass"
+                >
+                  <QrCode size={16} />
+                </button>
+              </div>
             </div>
           ))}
           {myVisitors.length === 0 && (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              No upcoming visitors.
+              You haven't registered any visitors yet.
             </div>
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedPass && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm rounded-3xl bg-background p-6 shadow-2xl overflow-hidden relative"
+            >
+              <button 
+                onClick={() => setSelectedPass(null)}
+                className="absolute right-4 top-4 rounded-full bg-muted p-2 hover:bg-muted/80 transition"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="text-center mb-6 mt-4">
+                <h3 className="font-['Libre_Baskerville'] text-2xl font-bold mb-1">Gate Pass</h3>
+                <p className="text-sm text-muted-foreground">Show this at the entrance</p>
+              </div>
+
+              <div className="bg-card border border-border rounded-2xl p-6 flex flex-col items-center justify-center mb-6">
+                <div className="bg-white p-4 rounded-xl shadow-inner mb-4">
+                  <QRCodeSVG value={selectedPass.id} size={200} level="H" includeMargin={false} />
+                </div>
+                <p className="font-mono text-xs text-muted-foreground tracking-widest break-all text-center">
+                  {selectedPass.id}
+                </p>
+              </div>
+
+              <div className="bg-muted/50 rounded-2xl p-4 text-center">
+                <p className="font-bold text-lg">{selectedPass.visitor_name}</p>
+                <p className="text-sm text-muted-foreground">{new Date(selectedPass.date_of_visit).toLocaleString()}</p>
+                <div className="mt-3">
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                    selectedPass.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {selectedPass.status}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
