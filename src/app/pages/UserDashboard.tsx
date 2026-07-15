@@ -45,19 +45,25 @@ export default function UserDashboard() {
   const myTenant = tenants.find((t) => t.profile_id === user?.id);
   const myRoom = myTenant ? rooms.find((r) => r.id === myTenant.room_id) : null;
 
+  const filteredNavItems = myTenant 
+    ? navItems 
+    : navItems.filter(item => item.id === "dashboard" || item.id === "profile");
+
   return (
     <DashboardLayout
-      navItems={navItems}
+      navItems={filteredNavItems}
       activeNav={activeNav}
       onNavChange={setActiveNav}
-      pageTitle={navItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
+      pageTitle={filteredNavItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
     >
-      {!myTenant && !tenantsLoading && (
+      {!myTenant && !tenantsLoading && activeNav === "dashboard" && (
         <div className="-mt-8">
           <ExploreRooms />
         </div>
       )}
       
+      {activeNav === "profile" && <ProfilePlaceholder />}
+
       {myTenant && (
         <>
           {activeNav === "dashboard" && <OverviewSection userName={user?.fullName ?? "Resident"} tenant={myTenant} room={myRoom} />}
@@ -66,7 +72,6 @@ export default function UserDashboard() {
           {activeNav === "maintenance" && <MaintenanceSection room={myRoom} />}
           {activeNav === "community" && <CommunitySection profileId={user?.id} houseId={myRoom?.house_id} />}
           {activeNav === "visitors" && <VisitorsSection profileId={user?.id} />}
-          {activeNav === "profile" && <ProfilePlaceholder />}
         </>
       )}
     </DashboardLayout>
