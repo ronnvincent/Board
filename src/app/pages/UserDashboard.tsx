@@ -294,7 +294,12 @@ function RoomSection({ tenant, room }: { tenant: any, room: any }) {
 function RentSection({ tenant }: { tenant: any }) {
   const [paying, setPaying] = useState(false);
   const { data: rooms } = useRealtimeData("rooms");
+  const { data: payments } = useRealtimeData("payments", "created_at", true);
+  
   const myRoom = rooms.find((r) => r.id === tenant.room_id);
+  const myPayments = payments
+    .filter((p: any) => p.tenant_id === tenant.id)
+    .sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -333,7 +338,17 @@ function RentSection({ tenant }: { tenant: any }) {
           onCancel={() => setPaying(false)}
           onSuccess={async () => {
             setPaying(false);
+            
+            // 1. Update rent status
             await supabase.from("tenants").update({ rent_status: "Paid" }).eq("id", tenant.id);
+            
+            // 2. Insert payment record
+            await supabase.from("payments").insert({
+              tenant_id: tenant.id,
+              amount: myRoom?.price || 5000,
+              description: `Rent Payment for Room ${myRoom?.number || ''}`,
+              status: "Paid"
+            });
           }}
         />
       )}
@@ -342,8 +357,39 @@ function RentSection({ tenant }: { tenant: any }) {
         <div className="border-b border-border px-5 py-4">
           <h3 className="text-sm font-bold">Payment History</h3>
         </div>
-        <div className="p-8 text-center text-sm text-muted-foreground">
-          No past payments recorded yet.
+        <div className="divide-y divide-border">
+          {myPayments.map((payment: any) => (
+            <div key={payment.id} className="flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition">
+              <div className="flex items-center gap-3">
+                <div className="grid size-10 place-items-center rounded-xl bg-emerald-100 text-emerald-600 shrink-0">
+                  <CreditCard size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">{payment.description}</p>
+                  <p className="text-[11px] font-mono text-muted-foreground mt-0.5">
+                    {new Date(payment.created_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-sm font-bold text-emerald-600 mb-1">
+                  ₱{Number(payment.amount).toLocaleString()}
+                </p>
+                <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">
+                  {payment.status}
+                </span>
+              </div>
+            </div>
+          ))}
+          {myPayments.length === 0 && (
+            <div className="p-12 text-center">
+              <div className="grid size-12 place-items-center rounded-full bg-muted mx-auto mb-3">
+                <CreditCard size={20} className="text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-foreground">No past payments</p>
+              <p className="text-xs text-muted-foreground mt-1">Your payment history will appear here.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -364,8 +410,7 @@ function MaintenanceSection({ room }: { room: any }) {
     const { error } = await supabase.from("maintenance_requests").insert({
       room_id: room.id,
       issue: newRequest,
-      status: "pending",
-      date_reported: new Date().toLocaleDateString()
+      status: "pending"
     });
     if (error) {
       alert("Failed to submit request: " + error.message);
@@ -442,7 +487,7 @@ function MaintenanceSection({ room }: { room: any }) {
                 </div>
                 <div>
                   <p className="text-sm font-medium">{req.issue}</p>
-                  <p className="text-xs text-muted-foreground">{req.date_reported}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(req.created_at || new Date()).toLocaleDateString()}</p>
                 </div>
               </div>
               <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase ${
