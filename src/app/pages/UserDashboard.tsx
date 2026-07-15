@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   AlertTriangle,
@@ -26,7 +26,8 @@ import {
   Paperclip,
   ChevronLeft,
   CheckCheck,
-  Trash2
+  Trash2,
+  EyeOff
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -1852,6 +1853,55 @@ function MessagesSection({
   const [showEmoji, setShowEmoji] = useState(false);
   const [deletingConvo, setDeletingConvo] = useState<string | null>(null);
 
+  // --- Per-message deletion state ---
+  const [contextMenu, setContextMenu] = useState<{ msgId: string; isMe: boolean; x: number; y: number } | null>(null);
+  const [hiddenMsgIds, setHiddenMsgIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(`hidden_msgs_${currentUserId}`);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Persist hidden message IDs
+  const persistHidden = useCallback((ids: Set<string>) => {
+    setHiddenMsgIds(ids);
+    localStorage.setItem(`hidden_msgs_${currentUserId}`, JSON.stringify([...ids]));
+  }, [currentUserId]);
+
+  const handleDeleteForEveryone = async (msgId: string) => {
+    setContextMenu(null);
+    const { error } = await supabase.from("messages").delete().eq("id", msgId);
+    if (error) alert("Failed to delete message: " + error.message);
+  };
+
+  const handleDeleteForMe = (msgId: string) => {
+    setContextMenu(null);
+    const next = new Set(hiddenMsgIds);
+    next.add(msgId);
+    persistHidden(next);
+  };
+
+  // Close context menu on click outside
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handler = () => setContextMenu(null);
+    window.addEventListener("click", handler);
+    window.addEventListener("scroll", handler, true);
+    return () => {
+      window.removeEventListener("click", handler);
+      window.removeEventListener("scroll", handler, true);
+    };
+  }, [contextMenu]);
+
+  const openContextMenu = (e: { clientX: number; clientY: number }, msgId: string, isMe: boolean) => {
+    // Clamp position to stay within viewport
+    const x = Math.min(e.clientX, window.innerWidth - 200);
+    const y = Math.min(e.clientY, window.innerHeight - 120);
+    setContextMenu({ msgId, isMe, x, y });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentUserId || !activeChatUserId) return;
@@ -1910,8 +1960,9 @@ function MessagesSection({
   const activePartnerRoom = rooms.find((r: any) => r.id === activePartnerTenant?.room_id);
 
   const chatHistory = myMessages.filter((m: any) => 
-    (m.sender_id === currentUserId && m.receiver_id === activeChatUserId) ||
-    (m.receiver_id === currentUserId && m.sender_id === activeChatUserId)
+    ((m.sender_id === currentUserId && m.receiver_id === activeChatUserId) ||
+    (m.receiver_id === currentUserId && m.sender_id === activeChatUserId)) &&
+    !hiddenMsgIds.has(m.id)
   ).sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
 
   useEffect(() => {
@@ -2064,7 +2115,32 @@ function MessagesSection({
                   const avatarUrl = senderProfile?.avatar_url;
 
                   return (
-                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} mb-4`}>
+                    <div
+                      key={msg.id}
+                      className={`flex ${isMe ? "justify-end" : "justify-start"} mb-4`}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        openContextMenu(e, msg.id, isMe);
+                      }}
+                      onTouchStart={(e) => {
+                        const touch = e.touches[0];
+                        longPressTimer.current = setTimeout(() => {
+                          openContextMenu({ clientX: touch.clientX, clientY: touch.clientY }, msg.id, isMe);
+                        }, 500);
+                      }}
+                      onTouchEnd={() => {
+                        if (longPressTimer.current) {
+                          clearTimeout(longPressTimer.current);
+                          longPressTimer.current = null;
+                        }
+                      }}
+                      onTouchMove={() => {
+                        if (longPressTimer.current) {
+                          clearTimeout(longPressTimer.current);
+                          longPressTimer.current = null;
+                        }
+                      }}
+                    >
                       <div className={`flex gap-3 max-w-[85%] ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                         <div className="shrink-0 mt-auto hidden sm:block">
                           {avatarUrl ? (
@@ -2075,7 +2151,7 @@ function MessagesSection({
                             </div>
                           )}
                         </div>
-                        <div className={`rounded-2xl px-5 py-3 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted border border-border rounded-bl-sm"}`}>
+                        <div className={`rounded-2xl px-5 py-3 text-sm select-none ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted border border-border rounded-bl-sm"}`}>
                           {msg.content.startsWith("data:image/") ? (
                             <img src={msg.content} alt="Attachment" className="rounded-xl max-h-64 object-cover" />
                           ) : (
@@ -2095,6 +2171,40 @@ function MessagesSection({
                   );
                 })
               )}
+
+              {/* Message context menu */}
+              <AnimatePresence>
+                {contextMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.15 }}
+                    className="fixed z-[100] rounded-xl bg-card border border-border shadow-2xl backdrop-blur-sm overflow-hidden"
+                    style={{ left: contextMenu.x, top: contextMenu.y }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="py-1 min-w-[180px]">
+                      {contextMenu.isMe && (
+                        <button
+                          onClick={() => handleDeleteForEveryone(contextMenu.msgId)}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"
+                        >
+                          <Trash2 size={15} />
+                          Delete for Everyone
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteForMe(contextMenu.msgId)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted transition"
+                      >
+                        <EyeOff size={15} />
+                        Delete for Me
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="p-3 md:p-4 border-t border-border bg-card shrink-0">
