@@ -21,4 +21,12 @@ export type Profile = {
   full_name: string;
   created_at: string;
   avatar_url?: string;
+  phone?: string;
+  emergency_name?: string;
+  emergency_relation?: string;
+  emergency_phone?: string;
+  pref_rent?: boolean;
+  pref_maintenance?: boolean;
+  pref_announcements?: boolean;
+  pref_visitors?: boolean;
 };

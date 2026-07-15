@@ -936,16 +936,8 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   
-  // Real-time hook for syncing with DB
   const { data: profiles } = useRealtimeData("profiles");
   const realProfile = profiles.find((p: any) => p.id === user?.id) || user;
-
-  const localCacheKey = `profile_${user?.id}`;
-  const getLocalData = () => {
-    try { return JSON.parse(localStorage.getItem(localCacheKey) || '{}'); } 
-    catch { return {}; }
-  };
-  const [localData, setLocalData] = useState(getLocalData());
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -953,37 +945,33 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
     
     setIsSaving(true);
     const formData = new FormData(e.currentTarget);
-    const newLocalData = { ...localData };
+    let updateData: any = {};
 
     if (activeTab === "personal") {
       const firstName = formData.get("firstName") as string;
       const lastName = formData.get("lastName") as string;
       const phone = formData.get("phone") as string;
-      if (phone !== null) newLocalData.phone = phone;
-
-      try {
-        let updateData: any = {};
-        if (firstName || lastName) {
-          updateData.full_name = `${firstName || ''} ${lastName || ''}`.trim();
-        }
-        if (Object.keys(updateData).length > 0) {
-          await supabase.from('profiles').update(updateData).eq('id', user.id);
-        }
-      } catch (err) {
-        console.error("Error updating profile:", err);
+      
+      if (firstName || lastName) {
+        updateData.full_name = `${firstName || ''} ${lastName || ''}`.trim();
       }
+      if (phone !== null) updateData.phone = phone;
+
     } else if (activeTab === "emergency") {
       const emergencyName = formData.get("emergencyName") as string;
       const emergencyRelation = formData.get("emergencyRelation") as string;
       const emergencyPhone = formData.get("emergencyPhone") as string;
-      if (emergencyName !== null) newLocalData.emergencyName = emergencyName;
-      if (emergencyRelation !== null) newLocalData.emergencyRelation = emergencyRelation;
-      if (emergencyPhone !== null) newLocalData.emergencyPhone = emergencyPhone;
+      
+      if (emergencyName !== null) updateData.emergency_name = emergencyName;
+      if (emergencyRelation !== null) updateData.emergency_relation = emergencyRelation;
+      if (emergencyPhone !== null) updateData.emergency_phone = emergencyPhone;
+
     } else if (activeTab === "preferences") {
-      newLocalData.prefRent = formData.get("prefRent") !== null;
-      newLocalData.prefMaintenance = formData.get("prefMaintenance") !== null;
-      newLocalData.prefAnnouncements = formData.get("prefAnnouncements") !== null;
-      newLocalData.prefVisitors = formData.get("prefVisitors") !== null;
+      updateData.pref_rent = formData.get("prefRent") !== null;
+      updateData.pref_maintenance = formData.get("prefMaintenance") !== null;
+      updateData.pref_announcements = formData.get("prefAnnouncements") !== null;
+      updateData.pref_visitors = formData.get("prefVisitors") !== null;
+
     } else if (activeTab === "security") {
       const newPassword = formData.get("newPassword") as string;
       const confirmPassword = formData.get("confirmPassword") as string;
@@ -995,7 +983,6 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
         }
         const { error: passError } = await supabase.auth.updateUser({ password: newPassword });
         if (passError) {
-          console.error(passError);
           alert("Failed to update password. " + passError.message);
           setIsSaving(false);
           return;
@@ -1003,12 +990,19 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
       }
     }
 
-    localStorage.setItem(localCacheKey, JSON.stringify(newLocalData));
-    setLocalData(newLocalData);
-    
-    setSuccessMsg("Changes saved successfully!");
-    setTimeout(() => setSuccessMsg(""), 3000);
-    setIsSaving(false);
+    try {
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase.from('profiles').update(updateData).eq('id', user.id);
+        if (error) throw error;
+      }
+      setSuccessMsg("Changes saved successfully!");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err) {
+      console.error("Error saving profile:", err);
+      alert("Failed to save changes. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1028,15 +1022,11 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
       if (uploadError) {
         console.error("Storage upload failed, using local base64");
         try {
-          const base64DataUrl = await compressImageToBase64(file, 400, 0.7); // Compress aggressively for local storage
-          const newLocalData = { ...localData, avatar_url: base64DataUrl };
-          localStorage.setItem(localCacheKey, JSON.stringify(newLocalData));
-          setLocalData(newLocalData);
+          const base64DataUrl = await compressImageToBase64(file, 400, 0.7);
+          const { error } = await supabase.from('profiles').update({ avatar_url: base64DataUrl }).eq('id', user.id);
+          if (error) throw error;
           
-          // Also try to sync it to the Supabase profiles table for other users to see
-          await supabase.from('profiles').update({ avatar_url: base64DataUrl }).eq('id', user.id);
-          
-          setSuccessMsg("Profile picture updated locally!");
+          setSuccessMsg("Profile picture updated!");
         } catch (err) {
           console.error("Failed to process image locally:", err);
           alert("Could not save the image locally. Please try a smaller image.");
@@ -1046,13 +1036,8 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
       }
 
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      
-      const newLocalData = { ...localData, avatar_url: data.publicUrl };
-      localStorage.setItem(localCacheKey, JSON.stringify(newLocalData));
-      setLocalData(newLocalData);
-      
-      // Update the real profiles table so other users can see it
-      await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+      const { error } = await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+      if (error) throw error;
       
       setSuccessMsg("Profile picture updated successfully!");
       setTimeout(() => setSuccessMsg(""), 3000);
@@ -1065,12 +1050,13 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
     }
   };
 
-  const currentAvatar = localData.avatar_url || realProfile?.avatar_url || user?.avatar_url;
+  const currentAvatar = realProfile?.avatar_url || user?.avatar_url;
   
-  // Safe helper to get the first and last name from whichever profile object is available
   const fullName = realProfile?.full_name || realProfile?.fullName || user?.fullName || "";
   const firstName = fullName.split(" ")[0] || "";
   const lastName = fullName.split(" ").slice(1).join(" ") || "";
+
+  const profileKey = JSON.stringify(realProfile);
 
   return (
     <div className="max-w-4xl mx-auto pb-12">
@@ -1080,39 +1066,13 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-8">
-        {/* Sidebar Nav */}
         <div className="flex flex-col gap-2">
-          <button 
-            type="button"
-            onClick={() => setActiveTab("personal")}
-            className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "personal" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-          >
-            Personal Information
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab("emergency")}
-            className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "emergency" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-          >
-            Emergency Contact
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab("preferences")}
-            className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "preferences" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-          >
-            Preferences
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab("security")}
-            className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "security" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-          >
-            Security
-          </button>
+          <button type="button" onClick={() => setActiveTab("personal")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "personal" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>Personal Information</button>
+          <button type="button" onClick={() => setActiveTab("emergency")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "emergency" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>Emergency Contact</button>
+          <button type="button" onClick={() => setActiveTab("preferences")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "preferences" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>Preferences</button>
+          <button type="button" onClick={() => setActiveTab("security")} className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === "security" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>Security</button>
         </div>
 
-        {/* Content Area */}
         <div className="bg-card rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
           {successMsg && (
             <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3 text-emerald-800">
@@ -1121,18 +1081,14 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
             </div>
           )}
 
-          <form onSubmit={handleSave}>
+          <form key={profileKey} onSubmit={handleSave}>
             {activeTab === "personal" && (
-              <div key={fullName} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div>
                   <h3 className="text-lg font-bold mb-4">Profile Picture</h3>
                   <div className="flex items-center gap-6">
                     <div className="grid size-20 place-items-center rounded-full bg-muted border border-border overflow-hidden">
-                      {currentAvatar ? (
-                        <img src={currentAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        <User size={32} className="text-muted-foreground" />
-                      )}
+                      {currentAvatar ? <img src={currentAvatar} alt="Avatar" className="w-full h-full object-cover" /> : <User size={32} className="text-muted-foreground" />}
                     </div>
                     <div className="space-y-2">
                       <label className={`inline-block px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg transition ${uploading ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-primary/90"}`}>
@@ -1162,7 +1118,7 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
-                    <input type="tel" name="phone" defaultValue={localData.phone || "+1 (555) 000-0000"} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                    <input type="tel" name="phone" defaultValue={realProfile?.phone || ""} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                 </div>
               </div>
@@ -1176,16 +1132,16 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Contact Name</label>
-                    <input type="text" name="emergencyName" defaultValue={localData.emergencyName || ""} placeholder="Jane Doe" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                    <input type="text" name="emergencyName" defaultValue={realProfile?.emergency_name || ""} placeholder="Jane Doe" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">Relationship</label>
-                      <input type="text" name="emergencyRelation" defaultValue={localData.emergencyRelation || ""} placeholder="Mother, Spouse, etc." className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                      <input type="text" name="emergencyRelation" defaultValue={realProfile?.emergency_relation || ""} placeholder="Mother, Spouse, etc." className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
-                      <input type="tel" name="emergencyPhone" defaultValue={localData.emergencyPhone || ""} placeholder="+1 (555) 000-0000" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                      <input type="tel" name="emergencyPhone" defaultValue={realProfile?.emergency_phone || ""} placeholder="+1 (555) 000-0000" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                   </div>
                 </div>
@@ -1199,13 +1155,13 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                 
                 <div className="space-y-4">
                   {[
-                    { title: "Rent Reminders", desc: "Get notified when rent is due or overdue.", name: "prefRent" },
-                    { title: "Maintenance Updates", desc: "Receive updates on your maintenance requests.", name: "prefMaintenance" },
-                    { title: "House Announcements", desc: "Stay informed about general house news.", name: "prefAnnouncements" },
-                    { title: "Visitor Approvals", desc: "Get alerts when your visitor pass is approved.", name: "prefVisitors" },
+                    { title: "Rent Reminders", desc: "Get notified when rent is due or overdue.", name: "prefRent", dbKey: "pref_rent" as keyof typeof realProfile },
+                    { title: "Maintenance Updates", desc: "Receive updates on your maintenance requests.", name: "prefMaintenance", dbKey: "pref_maintenance" as keyof typeof realProfile },
+                    { title: "House Announcements", desc: "Stay informed about general house news.", name: "prefAnnouncements", dbKey: "pref_announcements" as keyof typeof realProfile },
+                    { title: "Visitor Approvals", desc: "Get alerts when your visitor pass is approved.", name: "prefVisitors", dbKey: "pref_visitors" as keyof typeof realProfile },
                   ].map((item, i) => (
                     <label key={i} className="flex items-start gap-3 p-4 rounded-xl border border-border hover:bg-muted/50 cursor-pointer transition">
-                      <input type="checkbox" name={item.name} defaultChecked={localData[item.name] ?? true} className="mt-1 w-4 h-4 rounded text-primary focus:ring-primary" />
+                      <input type="checkbox" name={item.name} defaultChecked={realProfile?.[item.dbKey] ?? true} className="mt-1 w-4 h-4 rounded text-primary focus:ring-primary" />
                       <div>
                         <p className="text-sm font-bold text-foreground">{item.title}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
@@ -1222,10 +1178,6 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                 <p className="text-sm text-muted-foreground -mt-4 mb-4">Update your password to keep your account secure.</p>
                 
                 <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-muted-foreground">Current Password</label>
-                    <input type="password" name="currentPassword" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
-                  </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">New Password</label>
                     <input type="password" name="newPassword" placeholder="••••••••" className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
@@ -1248,7 +1200,8 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
               
               <button 
                 type="submit" 
-                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition"
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition disabled:opacity-50"
               >
                 {isSaving ? "Saving..." : "Save Changes"}
               </button>
