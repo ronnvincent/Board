@@ -852,7 +852,6 @@ function MaintenanceSectionV2({
       tenant_id: tenant.id,
       subject: subject.trim(),
       description: description.trim() || subject.trim(),
-      priority,
       status: "pending" as const,
       date_reported: new Date().toISOString()
     };
