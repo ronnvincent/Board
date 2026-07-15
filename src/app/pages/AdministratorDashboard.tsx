@@ -25,25 +25,8 @@ const navItems: NavItem[] = [
   { label: "Settings", icon: <Settings size={18} />, id: "settings" },
 ];
 
-// Mock data
-const mockAdmins = [
-  { id: "adm-001", name: "House Manager", email: "admin", house: "The Green House", status: "active" },
-  { id: "adm-002", name: "Maria Santos", email: "maria@example.com", house: "Sunrise Dorm", status: "active" },
-];
-
-const mockHouses = [
-  { id: "bh-001", name: "The Green House", rooms: 20, occupied: 18, admin: "House Manager", rate: 92 },
-  { id: "bh-002", name: "Sunrise Dorm", rooms: 30, occupied: 27, admin: "Maria Santos", rate: 88 },
-  { id: "bh-003", name: "Lakeside Living", rooms: 15, occupied: 12, admin: "—", rate: 95 },
-];
-
-const mockActivity = [
-  { time: "2 min ago", text: "New user Sora registered", type: "user" },
-  { time: "15 min ago", text: "Rent collection completed at The Green House", type: "payment" },
-  { time: "1 hr ago", text: "Admin Maria Santos updated Sunrise Dorm settings", type: "admin" },
-  { time: "3 hr ago", text: "Maintenance request #142 resolved", type: "task" },
-  { time: "5 hr ago", text: "New boarding house 'Lakeside Living' created", type: "house" },
-];
+import { useRealtimeData } from "../hooks/useRealtimeData";
+import { supabase } from "../../lib/supabase";
 
 export default function AdministratorDashboard() {
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -66,13 +49,23 @@ export default function AdministratorDashboard() {
 }
 
 function OverviewSection() {
+  const { data: houses } = useRealtimeData("houses", "created_at", true);
+  const { data: admins } = useRealtimeData("admins");
+
+  // Calculate totals across all houses
+  const totalHouses = houses.length;
+  const totalAdmins = admins.length;
+  
+  // We don't have "users" or "revenue" tables yet, so we will show 0 for now.
+  // In a real production system, these would aggregate from tenants and payments tables.
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total Houses" value={3} icon={<Building2 size={19} />} trend="up" trendText="+1 this month" index={0} />
-        <StatCard title="Total Admins" value={2} icon={<Shield size={19} />} colorClass="bg-[#f2e3c1] text-[#8c6b37]" index={1} />
-        <StatCard title="Total Users" value={57} subtitle="residents" icon={<Users size={19} />} trend="up" trendText="+8" colorClass="bg-[#dbeafe] text-[#2563eb]" index={2} />
-        <StatCard title="Monthly Revenue" value="₱285K" icon={<Home size={19} />} trend="up" trendText="+12%" colorClass="bg-[#e6efe8] text-primary" index={3} />
+        <StatCard title="Total Houses" value={totalHouses} icon={<Building2 size={19} />} trend="neutral" trendText="Live from DB" index={0} />
+        <StatCard title="Total Admins" value={totalAdmins} icon={<Shield size={19} />} colorClass="bg-[#f2e3c1] text-[#8c6b37]" index={1} />
+        <StatCard title="Total Users" value={0} subtitle="residents" icon={<Users size={19} />} trend="neutral" colorClass="bg-[#dbeafe] text-[#2563eb]" index={2} />
+        <StatCard title="Monthly Revenue" value="₱0" icon={<Home size={19} />} trend="neutral" colorClass="bg-[#e6efe8] text-primary" index={3} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -85,30 +78,42 @@ function OverviewSection() {
         >
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h3 className="text-sm font-bold">Boarding Houses</h3>
-            <span className="font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">{mockHouses.length} properties</span>
+            <span className="font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">{houses.length} properties</span>
           </div>
-          <div className="divide-y divide-border">
-            {mockHouses.map((house) => (
-              <div key={house.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition">
-                <div className="flex items-center gap-3">
-                  <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
-                    <Building2 size={16} />
+          
+          {houses.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-sm text-muted-foreground">No boarding houses exist yet.</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Go to the Houses tab to create one.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {houses.map((house) => {
+                // Find admin assigned to this house
+                const assignedAdmin = admins.find(a => a.house_id === house.id);
+                return (
+                  <div key={house.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition">
+                    <div className="flex items-center gap-3">
+                      <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                        <Building2 size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">{house.name}</p>
+                        <p className="text-xs text-muted-foreground">{assignedAdmin ? assignedAdmin.name : "Unassigned"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-sm font-bold">0<span className="text-muted-foreground font-normal">/{house.rooms}</span></p>
+                        <p className="text-[10px] text-muted-foreground font-['DM_Mono'] uppercase">0% collected</p>
+                      </div>
+                      <ChevronRight size={15} className="text-muted-foreground" />
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold">{house.name}</p>
-                    <p className="text-xs text-muted-foreground">{house.admin}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm font-bold">{house.occupied}<span className="text-muted-foreground font-normal">/{house.rooms}</span></p>
-                    <p className="text-[10px] text-muted-foreground font-['DM_Mono'] uppercase">{house.rate}% collected</p>
-                  </div>
-                  <ChevronRight size={15} className="text-muted-foreground" />
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </motion.div>
 
         {/* Activity feed */}
@@ -122,13 +127,9 @@ function OverviewSection() {
             <h3 className="text-sm font-bold">Recent Activity</h3>
             <Activity size={15} className="text-muted-foreground" />
           </div>
-          <div className="divide-y divide-border">
-            {mockActivity.map((item, i) => (
-              <div key={i} className="px-5 py-3">
-                <p className="text-sm">{item.text}</p>
-                <p className="mt-1 font-['DM_Mono'] text-[10px] text-muted-foreground">{item.time}</p>
-              </div>
-            ))}
+          <div className="flex h-[200px] flex-col items-center justify-center text-center px-4">
+            <p className="text-sm text-muted-foreground">Activity logs will appear here</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">As your platforms runs, real-time events will stream in.</p>
           </div>
         </motion.div>
       </div>
@@ -137,85 +138,152 @@ function OverviewSection() {
 }
 
 function AdminsSection() {
+  const { data: admins, loading: loadingAdmins } = useRealtimeData("admins", "name", true);
+  const { data: houses } = useRealtimeData("houses", "name", true);
+  const [adding, setAdding] = useState(false);
+
+  const handleAddAdmin = async () => {
+    setAdding(true);
+    const adminName = prompt("Enter new Admin's full name:");
+    if (adminName) {
+      const email = prompt("Enter admin email:");
+      if (email) {
+        await supabase.from("admins").insert({ name: adminName, email, status: "active" });
+      }
+    }
+    setAdding(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Manage admin accounts and their assigned boarding houses.</p>
-        <button className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition">
+        <button 
+          onClick={handleAddAdmin}
+          disabled={adding}
+          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
+        >
           <UserPlus size={15} /> Add Admin
         </button>
       </div>
-      <div className="rounded-2xl border border-border bg-card overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
-              <th className="px-5 py-3 text-left font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">Name</th>
-              <th className="px-5 py-3 text-left font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">Email</th>
-              <th className="px-5 py-3 text-left font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">House</th>
-              <th className="px-5 py-3 text-left font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">Status</th>
-              <th className="px-5 py-3 w-10"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {mockAdmins.map((admin) => (
-              <tr key={admin.id} className="hover:bg-muted/20 transition">
-                <td className="px-5 py-3.5 font-medium">{admin.name}</td>
-                <td className="px-5 py-3.5 text-muted-foreground">{admin.email}</td>
-                <td className="px-5 py-3.5">{admin.house}</td>
-                <td className="px-5 py-3.5">
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 capitalize">{admin.status}</span>
-                </td>
-                <td className="px-5 py-3.5">
-                  <button className="text-muted-foreground hover:text-foreground"><MoreHorizontal size={16} /></button>
-                </td>
+      
+      {loadingAdmins ? (
+        <p className="text-sm text-muted-foreground">Loading admins...</p>
+      ) : admins.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+          <p className="text-sm font-medium text-foreground">No admins exist yet.</p>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-border bg-card overflow-hidden overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-5 py-3 text-left font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">Name</th>
+                <th className="px-5 py-3 text-left font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">Email</th>
+                <th className="px-5 py-3 text-left font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">House ID</th>
+                <th className="px-5 py-3 text-left font-['DM_Mono'] text-[10px] uppercase tracking-[.1em] text-muted-foreground">Status</th>
+                <th className="px-5 py-3 w-10"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {admins.map((admin) => (
+                <tr key={admin.id} className="hover:bg-muted/20 transition">
+                  <td className="px-5 py-3.5 font-medium">{admin.name}</td>
+                  <td className="px-5 py-3.5 text-muted-foreground">{admin.email}</td>
+                  <td className="px-5 py-3.5">{admin.house_id || "Unassigned"}</td>
+                  <td className="px-5 py-3.5">
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 capitalize">{admin.status}</span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <button className="text-muted-foreground hover:text-foreground"><MoreHorizontal size={16} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
 function HousesSection() {
+  const { data: houses, loading: loadingHouses } = useRealtimeData("houses", "created_at", false);
+  const { data: admins } = useRealtimeData("admins");
+  const [adding, setAdding] = useState(false);
+
+  const handleAddHouse = async () => {
+    setAdding(true);
+    const houseName = prompt("Enter the name of the new boarding house:");
+    if (houseName) {
+      const roomCapacity = prompt("How many total rooms does it have?");
+      await supabase.from("houses").insert({ 
+        name: houseName, 
+        rooms: parseInt(roomCapacity || "0", 10) 
+      });
+    }
+    setAdding(false);
+  };
+
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">All registered boarding houses across the platform.</p>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {mockHouses.map((house, i) => (
-          <motion.div
-            key={house.id}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="rounded-2xl border border-border bg-card p-5 hover:shadow-md transition-shadow cursor-pointer"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="grid size-10 place-items-center rounded-xl bg-primary text-[#e6b65c]">
-                <Building2 size={18} />
-              </div>
-              <div>
-                <p className="text-sm font-bold">{house.name}</p>
-                <p className="text-xs text-muted-foreground">{house.admin}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-lg bg-muted/50 p-2 text-center">
-                <p className="text-lg font-bold">{house.rooms}</p>
-                <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Rooms</p>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-2 text-center">
-                <p className="text-lg font-bold">{house.occupied}</p>
-                <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Occupied</p>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-2 text-center">
-                <p className="text-lg font-bold">{house.rate}%</p>
-                <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Collected</p>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">All registered boarding houses across the platform.</p>
+        <button 
+          onClick={handleAddHouse}
+          disabled={adding}
+          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
+        >
+          <Building2 size={15} /> Add House
+        </button>
       </div>
+
+      {loadingHouses ? (
+        <p className="text-sm text-muted-foreground">Loading houses...</p>
+      ) : houses.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+          <p className="text-sm font-medium text-foreground">No houses exist yet.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {houses.map((house, i) => {
+            const assignedAdmin = admins.find(a => a.house_id === house.id);
+            return (
+              <motion.div
+                key={house.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className="rounded-2xl border border-border bg-card p-5 hover:shadow-md transition-shadow cursor-pointer"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="grid size-10 place-items-center rounded-xl bg-primary text-[#e6b65c]">
+                    <Building2 size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">{house.name}</p>
+                    <p className="text-xs text-muted-foreground">{assignedAdmin ? assignedAdmin.name : "Unassigned Admin"}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg bg-muted/50 p-2 text-center">
+                    <p className="text-lg font-bold">{house.rooms}</p>
+                    <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Rooms</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-2 text-center">
+                    <p className="text-lg font-bold">0</p>
+                    <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Occupied</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-2 text-center">
+                    <p className="text-lg font-bold">0%</p>
+                    <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Collected</p>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -224,18 +292,8 @@ function ActivitySection() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">Platform-wide activity log.</p>
-      <div className="rounded-2xl border border-border bg-card divide-y divide-border">
-        {mockActivity.map((item, i) => (
-          <div key={i} className="flex items-center gap-4 px-5 py-4">
-            <div className="grid size-8 place-items-center rounded-full bg-muted shrink-0">
-              <Activity size={14} className="text-muted-foreground" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm">{item.text}</p>
-              <p className="mt-0.5 font-['DM_Mono'] text-[10px] text-muted-foreground">{item.time}</p>
-            </div>
-          </div>
-        ))}
+      <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+        <p className="text-sm font-medium text-foreground">No recent activity.</p>
       </div>
     </div>
   );

@@ -146,6 +146,13 @@ function RoomsSection() {
     setAdding(false);
   };
 
+  const handleDeleteRoom = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this room? All associated tenants will be unassigned.")) {
+      await supabase.from("rooms").delete().eq("id", id);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -179,15 +186,24 @@ function RoomsSection() {
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-lg font-bold">Room {room.number}</span>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                room.status === "occupied"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : room.status === "vacant"
-                    ? "bg-amber-50 text-amber-600"
-                    : "bg-red-50 text-red-500"
-              }`}>
-                {room.status}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                  room.status === "occupied"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : room.status === "vacant"
+                      ? "bg-amber-50 text-amber-600"
+                      : "bg-red-50 text-red-500"
+                }`}>
+                  {room.status}
+                </span>
+                <button 
+                  onClick={(e) => handleDeleteRoom(room.id, e)}
+                  className="text-muted-foreground hover:text-red-500 transition"
+                  title="Delete Room"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             </div>
             <p className="text-sm text-muted-foreground">
               {/* For now, tenants are tracked separately */}
@@ -211,6 +227,17 @@ function TenantsSection() {
       await supabase.from("tenants").insert({ name: tenantName, rent_status: "Due" });
     }
     setAdding(false);
+  };
+
+  const handleUpdateRent = async (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === "Paid" ? "Due" : currentStatus === "Due" ? "Overdue" : "Paid";
+    await supabase.from("tenants").update({ rent_status: nextStatus }).eq("id", id);
+  };
+
+  const handleDeleteTenant = async (id: string) => {
+    if (confirm("Are you sure you want to remove this tenant?")) {
+      await supabase.from("tenants").delete().eq("id", id);
+    }
   };
 
   return (
@@ -250,14 +277,28 @@ function TenantsSection() {
                   <td className="px-5 py-3.5 font-medium">{t.name}</td>
                   <td className="px-5 py-3.5 text-muted-foreground">{t.room_id || "Unassigned"}</td>
                   <td className="px-5 py-3.5">
-                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                      t.rent_status === "Paid" ? "bg-emerald-100 text-emerald-700"
-                        : t.rent_status === "Due" ? "bg-amber-50 text-amber-600"
-                          : "bg-red-100 text-red-600"
-                    }`}>{t.rent_status}</span>
+                    <button 
+                      onClick={() => handleUpdateRent(t.id, t.rent_status)}
+                      className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition hover:opacity-80 ${
+                        t.rent_status === "Paid" ? "bg-emerald-100 text-emerald-700"
+                          : t.rent_status === "Due" ? "bg-amber-50 text-amber-600"
+                            : "bg-red-100 text-red-600"
+                      }`}
+                      title="Click to cycle status"
+                    >
+                      {t.rent_status}
+                    </button>
                   </td>
                   <td className="px-5 py-3.5 text-muted-foreground">{t.due_date || "Not set"}</td>
-                  <td className="px-5 py-3.5"><button className="text-muted-foreground hover:text-foreground"><MoreHorizontal size={16} /></button></td>
+                  <td className="px-5 py-3.5 text-right">
+                    <button 
+                      onClick={() => handleDeleteTenant(t.id)}
+                      className="text-muted-foreground hover:text-red-500 transition"
+                      title="Remove Tenant"
+                    >
+                      <X size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -280,6 +321,12 @@ function StaffSection() {
       await supabase.from("staff").insert({ name: staffName, role: role, status: "active", tasks: 0 });
     }
     setAdding(false);
+  };
+
+  const handleDeleteStaff = async (id: string) => {
+    if (confirm("Are you sure you want to remove this staff member?")) {
+      await supabase.from("staff").delete().eq("id", id);
+    }
   };
 
   return (
@@ -311,14 +358,23 @@ function StaffSection() {
               transition={{ delay: i * 0.08 }}
               className="rounded-2xl border border-border bg-card p-5"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="grid size-10 place-items-center rounded-full bg-[#dbeafe] text-[#2563eb] text-sm font-bold uppercase">
-                  {s.name.charAt(0)}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="grid size-10 place-items-center rounded-full bg-[#dbeafe] text-[#2563eb] text-sm font-bold uppercase">
+                    {s.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">{s.role}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold">{s.name}</p>
-                  <p className="text-xs text-muted-foreground">{s.role}</p>
-                </div>
+                <button 
+                  onClick={() => handleDeleteStaff(s.id)}
+                  className="text-muted-foreground hover:text-red-500 transition"
+                  title="Remove Staff"
+                >
+                  <X size={14} />
+                </button>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{s.tasks} active tasks</span>

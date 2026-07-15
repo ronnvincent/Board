@@ -26,23 +26,8 @@ const navItems: NavItem[] = [
   { label: "Profile", icon: <User size={18} />, id: "profile" },
 ];
 
-// Mock data
-const mockRentHistory = [
-  { month: "July 2025", amount: "₱5,500", status: "Due", dueDate: "Jul 1" },
-  { month: "June 2025", amount: "₱5,500", status: "Paid", dueDate: "Jun 1" },
-  { month: "May 2025", amount: "₱5,500", status: "Paid", dueDate: "May 1" },
-  { month: "April 2025", amount: "₱5,500", status: "Paid", dueDate: "Apr 1" },
-];
-
-const mockMyRequests = [
-  { id: "mr1", issue: "AC not cooling properly", status: "pending", date: "Jul 13" },
-  { id: "mr2", issue: "Light switch flickering", status: "done", date: "Jun 28" },
-];
-
-const mockAnnouncements = [
-  { id: "a1", title: "Water interruption on July 16", body: "There will be a scheduled water service interruption from 8:00 AM to 12:00 PM. Please store water in advance.", date: "Jul 14" },
-  { id: "a2", title: "Monthly house meeting", body: "Please join us this Saturday at 3:00 PM in the common area for our monthly house meeting.", date: "Jul 12" },
-];
+import { useRealtimeData } from "../hooks/useRealtimeData";
+import { supabase } from "../../lib/supabase";
 
 export default function UserDashboard() {
   const { user } = useAuth();
@@ -66,6 +51,9 @@ export default function UserDashboard() {
 }
 
 function OverviewSection({ userName }: { userName: string }) {
+  const { data: maintenance } = useRealtimeData("maintenance_requests", "created_at", false);
+  const openRequests = maintenance.filter(m => m.status !== "done").length;
+
   return (
     <div className="space-y-8">
       {/* Welcome */}
@@ -84,7 +72,7 @@ function OverviewSection({ userName }: { userName: string }) {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="My Room" value="Room 04" icon={<BedDouble size={19} />} index={0} />
         <StatCard title="Rent Due" value="₱5,500" icon={<CreditCard size={19} />} colorClass="bg-amber-50 text-amber-600" subtitle="Jul 1" index={1} />
-        <StatCard title="Open Requests" value={1} icon={<Wrench size={19} />} colorClass="bg-[#dbeafe] text-[#2563eb]" index={2} />
+        <StatCard title="Open Requests" value={openRequests} icon={<Wrench size={19} />} colorClass="bg-[#dbeafe] text-[#2563eb]" index={2} />
         <StatCard title="Move-in" value="Mar 15" icon={<Calendar size={19} />} colorClass="bg-[#eee4d6] text-muted-foreground" index={3} />
       </div>
 
@@ -223,7 +211,21 @@ function RentSection() {
 }
 
 function MaintenanceSection() {
+  const { data: requests, loading } = useRealtimeData("maintenance_requests", "created_at", false);
   const [newRequest, setNewRequest] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!newRequest.trim()) return;
+    setSubmitting(true);
+    await supabase.from("maintenance_requests").insert({
+      issue: newRequest,
+      status: "pending",
+      date_reported: new Date().toLocaleDateString()
+    });
+    setNewRequest("");
+    setSubmitting(false);
+  };
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -239,10 +241,15 @@ function MaintenanceSection() {
             type="text"
             value={newRequest}
             onChange={(e) => setNewRequest(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             placeholder="Describe the issue..."
             className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
           />
-          <button className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition shrink-0">
+          <button 
+            onClick={handleSubmit}
+            disabled={submitting || !newRequest.trim()}
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition shrink-0 disabled:opacity-50"
+          >
             <Send size={14} /> Submit
           </button>
         </div>
@@ -253,24 +260,32 @@ function MaintenanceSection() {
         <div className="px-5 py-4 border-b border-border">
           <h3 className="text-sm font-bold">My Requests</h3>
         </div>
-        {mockMyRequests.map((req) => (
-          <div key={req.id} className="flex items-center justify-between px-5 py-4">
-            <div className="flex items-center gap-3">
-              <div className={`grid size-8 place-items-center rounded-lg ${
-                req.status === "done" ? "bg-emerald-100 text-emerald-600" : "bg-amber-50 text-amber-600"
-              }`}>
-                {req.status === "done" ? <CheckCircle2 size={15} /> : <Clock size={15} />}
+        
+        {loading ? (
+          <div className="px-5 py-8 text-center text-sm text-muted-foreground">Loading requests...</div>
+        ) : requests.length === 0 ? (
+          <div className="px-5 py-8 text-center text-sm text-muted-foreground">You have no maintenance requests.</div>
+        ) : (
+          requests.map((req) => (
+            <div key={req.id} className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className={`grid size-8 place-items-center rounded-lg ${
+                  req.status === "done" ? "bg-emerald-100 text-emerald-600" : "bg-amber-50 text-amber-600"
+                }`}>
+                  {req.status === "done" ? <CheckCircle2 size={15} /> : <Clock size={15} />}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{req.issue}</p>
+                  <p className="text-xs text-muted-foreground">{req.date_reported}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">{req.issue}</p>
-                <p className="text-xs text-muted-foreground">{req.date}</p>
-              </div>
+              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase ${
+                req.status === "done" ? "bg-emerald-100 text-emerald-700" : 
+                req.status === "in-progress" ? "bg-blue-100 text-blue-700" : "bg-amber-50 text-amber-600"
+              }`}>{req.status}</span>
             </div>
-            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase ${
-              req.status === "done" ? "bg-emerald-100 text-emerald-700" : "bg-amber-50 text-amber-600"
-            }`}>{req.status}</span>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

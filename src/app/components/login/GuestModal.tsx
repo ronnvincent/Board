@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, User as UserIcon, Shield } from "lucide-react";
+import { X, User as UserIcon, Shield, Building2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import type { UserRole } from "../../types/auth";
 import AnimatedInput from "./AnimatedInput";
@@ -69,11 +69,35 @@ export default function GuestModal({ isOpen, onClose }: GuestModalProps) {
 
               <div className="space-y-3">
                 <p className="text-sm font-medium text-foreground">Select Role</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => setRole("administrator")}
+                    className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 text-xs transition-all ${
+                      role === "administrator"
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border bg-transparent text-muted-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    <Shield size={16} />
+                    Super Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole("admin")}
+                    className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 text-xs transition-all ${
+                      role === "admin"
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border bg-transparent text-muted-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    <Building2 size={16} />
+                    House Admin
+                  </button>
                   <button
                     type="button"
                     onClick={() => setRole("user")}
-                    className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm transition-all ${
+                    className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 text-xs transition-all ${
                       role === "user"
                         ? "border-primary bg-primary/5 text-primary"
                         : "border-border bg-transparent text-muted-foreground hover:border-primary/30"
@@ -81,18 +105,6 @@ export default function GuestModal({ isOpen, onClose }: GuestModalProps) {
                   >
                     <UserIcon size={16} />
                     Resident
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole("administrator")}
-                    className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm transition-all ${
-                      role === "administrator"
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-border bg-transparent text-muted-foreground hover:border-primary/30"
-                    }`}
-                  >
-                    <Shield size={16} />
-                    Administrator
                   </button>
                 </div>
               </div>
