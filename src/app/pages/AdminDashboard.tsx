@@ -15,6 +15,7 @@ import {
   DoorOpen,
   AlertCircle,
   MoreHorizontal,
+  X,
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -136,14 +137,27 @@ function OverviewSection() {
 function RoomsSection() {
   const { data: rooms, loading } = useRealtimeData("rooms", "number", true);
   const [adding, setAdding] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [roomNumber, setRoomNumber] = useState("");
+  const [roomStatus, setRoomStatus] = useState<"vacant" | "occupied" | "maintenance">("vacant");
+  const [roomPrice, setRoomPrice] = useState("5000");
+  const [roomDescription, setRoomDescription] = useState("");
 
   const handleAddRoom = async () => {
+    if (!roomNumber.trim()) return;
     setAdding(true);
-    const roomNumber = prompt("Enter new room number:");
-    if (roomNumber) {
-      await supabase.from("rooms").insert({ number: roomNumber, status: "vacant" });
-    }
+    await supabase.from("rooms").insert({
+      number: roomNumber.trim(),
+      status: roomStatus,
+      price: Number(roomPrice) || 5000,
+      description: roomDescription.trim() || "Newly added room"
+    });
     setAdding(false);
+    setIsCreateModalOpen(false);
+    setRoomNumber("");
+    setRoomStatus("vacant");
+    setRoomPrice("5000");
+    setRoomDescription("");
   };
 
   const handleDeleteRoom = async (id: string, e: React.MouseEvent) => {
@@ -160,7 +174,7 @@ function RoomsSection() {
           {loading ? "Loading rooms..." : `Manage all ${rooms.length} rooms in The Green House.`}
         </p>
         <button 
-          onClick={handleAddRoom}
+          onClick={() => setIsCreateModalOpen(true)}
           disabled={adding}
           className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
         >
@@ -172,6 +186,95 @@ function RoomsSection() {
         <div className="rounded-2xl border border-dashed border-border p-12 text-center">
           <p className="text-sm font-medium text-foreground">No rooms exist yet.</p>
           <p className="text-xs text-muted-foreground mt-1">Click Add Room to create your first one.</p>
+        </div>
+      )}
+
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl"
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Create Room</h3>
+                <p className="text-sm text-muted-foreground">Add a new room with default details.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Room Number</label>
+                <input
+                  type="text"
+                  value={roomNumber}
+                  onChange={(e) => setRoomNumber(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                  placeholder="e.g. 101"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Status</label>
+                  <select
+                    value={roomStatus}
+                    onChange={(e) => setRoomStatus(e.target.value as any)}
+                    className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                  >
+                    <option value="vacant">Vacant</option>
+                    <option value="occupied">Occupied</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Monthly Price</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={roomPrice}
+                    onChange={(e) => setRoomPrice(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Description</label>
+                <textarea
+                  value={roomDescription}
+                  onChange={(e) => setRoomDescription(e.target.value)}
+                  rows={3}
+                  className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                  placeholder="Describe the room"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="rounded-xl px-4 py-2 text-sm font-bold text-muted-foreground transition hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddRoom}
+                disabled={adding || !roomNumber.trim()}
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-50"
+              >
+                {adding ? "Creating..." : "Create Room"}
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
 
