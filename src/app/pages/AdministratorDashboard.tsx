@@ -1971,18 +1971,43 @@ function SecurityGateSection() {
 }
 
 function AnnouncementsSection() {
+  const { user } = useAuth();
   const { data: notices } = useRealtimeData("notices", "created_at", false);
+  const { data: houses } = useRealtimeData("houses", "created_at", true);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [targetHouseId, setTargetHouseId] = useState("all");
   const [isPosting, setIsPosting] = useState(false);
 
   const handlePost = async () => {
     if (!title.trim() || !content.trim()) return;
     setIsPosting(true);
-    const { error } = await supabase.from("notices").insert({
-      title,
-      content
-    });
+
+    const payload = {
+      title: title.trim(),
+      content: content.trim(),
+      author_id: user?.id ?? null,
+    };
+
+    let error: { message: string } | null = null;
+
+    if (targetHouseId === "all") {
+      if (houses.length === 0) {
+        alert("No boarding houses found. Create a house first or select a specific house.");
+        setIsPosting(false);
+        return;
+      }
+      const result = await supabase.from("notices").insert(
+        houses.map((house: any) => ({ ...payload, house_id: house.id }))
+      );
+      error = result.error;
+    } else {
+      const result = await supabase.from("notices").insert({
+        ...payload,
+        house_id: targetHouseId,
+      });
+      error = result.error;
+    }
 
     if (error) {
       alert("Failed to post announcement: " + error.message);
@@ -2008,6 +2033,19 @@ function AnnouncementsSection() {
             Broadcast a notice to all tenants. It will appear on their Dashboard Community tab.
           </p>
           <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-xs font-bold text-muted-foreground mb-1">Target House</label>
+              <select
+                value={targetHouseId}
+                onChange={(e) => setTargetHouseId(e.target.value)}
+                className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
+              >
+                <option value="all">All boarding houses</option>
+                {houses.map((house: any) => (
+                  <option key={house.id} value={house.id}>{house.name}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-xs font-bold text-muted-foreground mb-1">Notice Title</label>
               <input
@@ -2061,7 +2099,12 @@ function AnnouncementsSection() {
                     <Trash2 size={16} />
                   </button>
                   <h4 className="font-bold text-lg pr-12">{notice.title}</h4>
-                  <p className="text-xs text-muted-foreground mb-3">{new Date(notice.created_at).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {notice.created_at ? new Date(notice.created_at).toLocaleString() : ""}
+                    {notice.house_id && (
+                      <> · {houses.find((h: any) => h.id === notice.house_id)?.name || "House"}</>
+                    )}
+                  </p>
                   <p className="text-sm text-foreground/80">{notice.content}</p>
                 </div>
               ))}

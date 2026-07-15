@@ -178,7 +178,8 @@ function OverviewSection({ userName, tenant, room, onNavigate }: { userName: str
   const assignedHouse = houses.find((house: any) => house.id === room?.house_id);
   const myRequests = maintenance.filter((m: any) => m.tenant_id === tenant.id || (!m.tenant_id && m.room_id === room?.id));
   const openRequests = myRequests.filter((m: any) => isMaintenanceOpen(m.status)).length;
-  const urgentNotice = notices.find((notice: any) => isUrgentNotice(notice));
+  const houseNotices = notices.filter((notice: any) => !notice.house_id || notice.house_id === room?.house_id);
+  const urgentNotice = houseNotices.find((notice: any) => isUrgentNotice(notice));
   const myNotifications = notifications.filter((n: any) => !n.profile_id || n.profile_id === tenant.profile_id);
   const unreadNotifications = myNotifications.filter((n: any) => !n.is_read);
   const urgentNotification = myNotifications.find((n: any) => n.priority === "urgent" && !n.is_read);
@@ -1226,6 +1227,10 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
 
   const [isPosting, setIsPosting] = useState(false);
 
+  const houseNotices = notices.filter(
+    (notice) => !notice.house_id || notice.house_id === houseId
+  );
+
   const handlePostItem = async () => {
     if (!newItem.trim() || !newPrice || !profileId) return;
     setIsPosting(true);
@@ -1251,14 +1256,14 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
       <div className="space-y-4 min-w-0">
         <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">House Notices</h3>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
-          {notices.length === 0 ? (
+          {houseNotices.length === 0 ? (
             <div className="p-8 sm:p-12 text-center">
               <Megaphone size={24} className="text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground">No Announcements</p>
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {notices.map((notice) => (
+              {houseNotices.map((notice) => (
                 <div key={notice.id} className="p-4 sm:p-5">
                   <h4 className="font-bold text-sm sm:text-base">{notice.title}</h4>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">{notice.content}</p>
