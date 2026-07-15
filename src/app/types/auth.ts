@@ -28,7 +28,6 @@ export interface AuthState {
 export interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error?: string }>;
-  guestSignIn: (name: string, role: UserRole) => void;
   signOut: () => void;
 }
 

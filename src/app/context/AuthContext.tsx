@@ -54,14 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Check initial session
-    const guestData = localStorage.getItem("board_guest_session");
-    if (guestData) {
-      setUser(JSON.parse(guestData));
-      setIsLoading(false);
-      return;
-    }
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (mounted) {
         if (session?.user) {
@@ -161,20 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const guestSignIn = useCallback((name: string, role: UserRole) => {
-    const guestUser: User = {
-      id: `guest-${Date.now()}`,
-      email: "guest@boardinghow.com",
-      fullName: name,
-      role: role,
-      createdAt: new Date().toISOString(),
-    };
-    localStorage.setItem("board_guest_session", JSON.stringify(guestUser));
-    setUser(guestUser);
-  }, []);
-
   const signOut = useCallback(async () => {
-    localStorage.removeItem("board_guest_session");
     await supabase.auth.signOut();
     setUser(null);
   }, []);
@@ -187,7 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         signIn,
         signUp,
-        guestSignIn,
         signOut,
       }}
     >
