@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   Edit2,
   Trash2,
+  MapPin,
 } from "lucide-react";
 import { useEffect } from "react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
@@ -411,6 +412,19 @@ function HousesSection() {
                     <p className="text-lg font-bold">0%</p>
                     <p className="text-[9px] font-['DM_Mono'] uppercase text-muted-foreground">Collected</p>
                   </div>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2">
+                  <div>
+                    <p className="text-[10px] font-['DM_Mono'] uppercase tracking-[.14em] text-muted-foreground">Location</p>
+                    <p className="text-sm font-semibold">{house.latitude != null && house.longitude != null ? "Pinned" : "Not pinned"}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(house)}
+                    className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/20"
+                  >
+                    <MapPin size={13} /> Set Location
+                  </button>
                 </div>
               </motion.div>
             );

@@ -14,14 +14,15 @@ import {
   Wrench,
   Image as ImageIcon,
   Store,
-  MessageSquare
+  MessageSquare,
+  MapPin
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
 import { useAuth } from "../context/AuthContext";
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
-import ExploreRooms from "./ExploreRooms";
+import ExploreRooms, { LocationMapModal } from "./ExploreRooms";
 import MockPaymentGateway from "../components/shared/MockPaymentGateway";
 
 const navItems: NavItem[] = [
@@ -98,9 +99,12 @@ function UnassignedPlaceholder() {
 
 function OverviewSection({ userName, tenant, room }: { userName: string, tenant: any, room: any }) {
   const { data: maintenance } = useRealtimeData("maintenance_requests");
+  const { data: houses } = useRealtimeData("houses");
   const [paying, setPaying] = useState(false);
+  const [activeLocationHouse, setActiveLocationHouse] = useState<any>(null);
   // Only count open requests for THIS room
   const openRequests = maintenance.filter((m: any) => m.room_id === room?.id && m.status !== "done").length;
+  const assignedHouse = houses.find((house: any) => house.id === room?.house_id);
 
   return (
     <div className="space-y-8">
@@ -129,6 +133,34 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
         />
         <StatCard title="Open Requests" value={openRequests} icon={<Wrench size={19} />} colorClass="bg-[#dbeafe] text-[#2563eb]" index={2} />
       </div>
+
+      {assignedHouse && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-border bg-card p-4"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">{assignedHouse.name}</p>
+              <p className="text-xs text-muted-foreground">Tap to see the route from your current location.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveLocationHouse(assignedHouse)}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary/20"
+            >
+              <MapPin size={14} /> See Location
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      <LocationMapModal
+        isOpen={Boolean(activeLocationHouse)}
+        onClose={() => setActiveLocationHouse(null)}
+        house={activeLocationHouse}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Rent quick view */}

@@ -18,7 +18,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl,
 });
 
-function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; onClose: () => void; house: any }) {
+export function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; onClose: () => void; house: any }) {
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
