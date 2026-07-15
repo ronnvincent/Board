@@ -44,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: profile.full_name,
         role: profile.role,
         createdAt: profile.created_at,
+        avatarUrl: profile.avatar_url,
       });
     } catch (err) {
       console.error("Error in fetchAndSetUserProfile:", err);

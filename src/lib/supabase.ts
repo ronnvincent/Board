@@ -20,4 +20,5 @@ export type Profile = {
   role: UserRole;
   full_name: string;
   created_at: string;
+  avatar_url?: string;
 };

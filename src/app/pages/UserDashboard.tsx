@@ -1032,6 +1032,10 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
           const newLocalData = { ...localData, avatar_url: base64DataUrl };
           localStorage.setItem(localCacheKey, JSON.stringify(newLocalData));
           setLocalData(newLocalData);
+          
+          // Also try to sync it to the Supabase profiles table for other users to see
+          await supabase.from('profiles').update({ avatar_url: base64DataUrl }).eq('id', user.id);
+          
           setSuccessMsg("Profile picture updated locally!");
         } catch (err) {
           console.error("Failed to process image locally:", err);
@@ -1046,6 +1050,9 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
       const newLocalData = { ...localData, avatar_url: data.publicUrl };
       localStorage.setItem(localCacheKey, JSON.stringify(newLocalData));
       setLocalData(newLocalData);
+      
+      // Update the real profiles table so other users can see it
+      await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
       
       setSuccessMsg("Profile picture updated successfully!");
       setTimeout(() => setSuccessMsg(""), 3000);

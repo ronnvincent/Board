@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import RoleBadge from "./RoleBadge";
 import type { UserRole } from "../../types/auth";
+import { useRealtimeData } from "../../hooks/useRealtimeData";
 
 export interface NavItem {
   label: string;
@@ -48,6 +49,17 @@ export default function DashboardLayout({
     .toUpperCase();
 
   const roleColor = getRoleAccent(user.role);
+
+  const { data: profiles } = useRealtimeData("profiles");
+  const currentProfile = profiles.find((p: any) => p.id === user?.id);
+  
+  let localAvatar = null;
+  try {
+    const localData = JSON.parse(localStorage.getItem(`profile_${user?.id}`) || '{}');
+    localAvatar = localData.avatar_url;
+  } catch (e) {}
+
+  const finalAvatar = localAvatar || currentProfile?.avatar_url || user.avatarUrl;
 
   return (
     <div className="flex h-screen bg-background font-['DM_Sans'] text-foreground overflow-hidden">
@@ -104,10 +116,14 @@ export default function DashboardLayout({
         <div className="border-t border-border px-3 py-4 space-y-3">
           <div className="flex items-center gap-3 overflow-hidden">
             <div
-              className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-bold text-white"
+              className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-bold text-white overflow-hidden"
               style={{ backgroundColor: roleColor }}
             >
-              {initials}
+              {finalAvatar ? (
+                <img src={finalAvatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
             {!collapsed && (
               <div className="min-w-0">
@@ -192,10 +208,14 @@ export default function DashboardLayout({
               <div className="border-t border-border px-3 pb-8 pt-4 space-y-3">
                 <div className="flex items-center gap-3">
                   <div
-                    className="grid size-9 place-items-center rounded-full text-xs font-bold text-white"
+                    className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-bold text-white overflow-hidden"
                     style={{ backgroundColor: roleColor }}
                   >
-                    {initials}
+                    {finalAvatar ? (
+                      <img src={finalAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      initials
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold truncate">{user.fullName}</p>
@@ -229,10 +249,14 @@ export default function DashboardLayout({
               <span>{user.fullName}</span>
             </div>
             <div
-              className="grid size-9 place-items-center rounded-full text-xs font-bold text-white lg:hidden"
+              className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-bold text-white overflow-hidden lg:hidden"
               style={{ backgroundColor: roleColor }}
             >
-              {initials}
+              {finalAvatar ? (
+                <img src={finalAvatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
           </div>
         </header>
