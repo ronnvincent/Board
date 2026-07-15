@@ -309,9 +309,6 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
           </div>
         </motion.div>
       </div>
-
-      </div>
-
       <AnimatePresence>
         {isLeaving && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
