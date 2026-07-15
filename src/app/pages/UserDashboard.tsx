@@ -409,7 +409,7 @@ function MaintenanceSection({ room }: { room: any }) {
     setSubmitting(true);
     const { error } = await supabase.from("maintenance_requests").insert({
       room_id: room.id,
-      issue: newRequest,
+      description: newRequest,
       status: "pending"
     });
     if (error) {
@@ -486,7 +486,7 @@ function MaintenanceSection({ room }: { room: any }) {
                   {req.status === "done" ? <CheckCircle2 size={15} /> : <Clock size={15} />}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{req.issue}</p>
+                  <p className="text-sm font-medium">{req.description}</p>
                   <p className="text-xs text-muted-foreground">{new Date(req.created_at || new Date()).toLocaleDateString()}</p>
                 </div>
               </div>
