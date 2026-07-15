@@ -21,7 +21,8 @@ import {
   Clock,
   Smile,
   Paperclip,
-  ChevronLeft
+  ChevronLeft,
+  CheckCheck
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -982,6 +983,16 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
     (m.receiver_id === currentUserId && m.sender_id === activeChatUserId)
   ).sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
 
+  useEffect(() => {
+    if (!currentUserId || !activeChatUserId) return;
+    const unreadMessages = chatHistory.filter((m: any) => m.receiver_id === currentUserId && !m.is_read);
+    
+    if (unreadMessages.length > 0) {
+      const unreadIds = unreadMessages.map((m: any) => m.id);
+      supabase.from("messages").update({ is_read: true }).in("id", unreadIds).then();
+    }
+  }, [chatHistory, currentUserId, activeChatUserId]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !currentUserId || !activeChatUserId) return;
     setSending(true);
@@ -1062,8 +1073,13 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
                         ) : (
                           <p>{msg.content}</p>
                         )}
-                        <p className={`text-[10px] mt-1 text-right ${isMe ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        <p className={`text-[10px] mt-1 text-right flex items-center justify-end gap-1 ${isMe ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                           {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          {isMe && (
+                            <span className={msg.is_read ? "text-blue-200" : "opacity-50"} title={msg.is_read ? "Seen" : "Sent"}>
+                              <CheckCheck size={12} />
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
