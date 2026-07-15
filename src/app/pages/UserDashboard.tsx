@@ -10,7 +10,11 @@ import {
   Megaphone,
   Send,
   User,
+  Users,
   Wrench,
+  Image as ImageIcon,
+  Store,
+  MessageSquare
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -25,7 +29,8 @@ const navItems: NavItem[] = [
   { label: "My Room", icon: <BedDouble size={18} />, id: "room" },
   { label: "Rent", icon: <CreditCard size={18} />, id: "rent" },
   { label: "Maintenance", icon: <Wrench size={18} />, id: "maintenance" },
-  { label: "Announcements", icon: <Megaphone size={18} />, id: "announcements" },
+  { label: "Community", icon: <Store size={18} />, id: "community" },
+  { label: "Visitors", icon: <Users size={18} />, id: "visitors" },
   { label: "Profile", icon: <User size={18} />, id: "profile" },
 ];
 
@@ -59,7 +64,8 @@ export default function UserDashboard() {
           {activeNav === "room" && <RoomSection tenant={myTenant} room={myRoom} />}
           {activeNav === "rent" && <RentSection tenant={myTenant} />}
           {activeNav === "maintenance" && <MaintenanceSection room={myRoom} />}
-          {activeNav === "announcements" && <AnnouncementsSection />}
+          {activeNav === "community" && <CommunitySection profileId={user?.id} houseId={myRoom?.house_id} />}
+          {activeNav === "visitors" && <VisitorsSection profileId={user?.id} />}
           {activeNav === "profile" && <ProfilePlaceholder />}
         </>
       )}
@@ -318,6 +324,13 @@ function MaintenanceSection({ room }: { room: any }) {
             placeholder="Describe the issue (e.g. Broken AC)..."
             className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
           />
+          <button
+            onClick={() => alert("Photo upload feature coming soon! (Simulation)")}
+            className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-bold text-muted-foreground hover:bg-muted transition shrink-0"
+            title="Attach a photo"
+          >
+            <ImageIcon size={14} />
+          </button>
           <button 
             onClick={handleSubmit}
             disabled={submitting || !newRequest.trim()}
@@ -364,13 +377,191 @@ function MaintenanceSection({ room }: { room: any }) {
   );
 }
 
-function AnnouncementsSection() {
+function CommunitySection({ profileId, houseId }: { profileId?: string, houseId?: string }) {
+  const { data: notices } = useRealtimeData("notices");
+  const { data: marketplace } = useRealtimeData("marketplace_items");
+
+  const [newItem, setNewItem] = useState("");
+  const [newPrice, setNewPrice] = useState("");
+
+  const handlePostItem = async () => {
+    if (!newItem.trim() || !newPrice || !profileId) return;
+    await supabase.from("marketplace_items").insert({
+      profile_id: profileId,
+      item_name: newItem,
+      price: parseFloat(newPrice),
+      status: "available"
+    });
+    setNewItem("");
+    setNewPrice("");
+  };
+
   return (
-    <div className="space-y-4 max-w-2xl">
-      <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-        <Megaphone size={24} className="text-muted-foreground mx-auto mb-3" />
-        <p className="text-sm font-medium text-foreground">No Announcements</p>
-        <p className="text-xs text-muted-foreground mt-1">Check back later for updates from the House Admin.</p>
+    <div className="grid gap-6 lg:grid-cols-2 max-w-5xl">
+      {/* Notice Board */}
+      <div className="space-y-4">
+        <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">House Notices</h3>
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          {notices.length === 0 ? (
+            <div className="p-12 text-center">
+              <Megaphone size={24} className="text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground">No Announcements</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {notices.map((notice) => (
+                <div key={notice.id} className="p-5">
+                  <h4 className="font-bold">{notice.title}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">{notice.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Marketplace */}
+      <div className="space-y-4">
+        <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Marketplace</h3>
+        <div className="rounded-2xl border border-border bg-card p-5 mb-4">
+          <p className="text-sm font-bold mb-3">Sell an Item</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="What are you selling?"
+              value={newItem}
+              onChange={(e) => setNewItem(e.target.value)}
+              className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+            />
+            <input
+              type="number"
+              placeholder="Price (₱)"
+              value={newPrice}
+              onChange={(e) => setNewPrice(e.target.value)}
+              className="w-24 rounded-xl border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+            />
+            <button
+              onClick={handlePostItem}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39]"
+            >
+              Post
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-3">
+          {marketplace.map((item) => (
+            <div key={item.id} className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+              <div>
+                <p className="font-bold">{item.item_name}</p>
+                <p className="text-xs text-muted-foreground">Seller: Resident • Posted today</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-primary">₱{item.price.toLocaleString()}</p>
+                <button className="text-xs font-bold text-emerald-600 mt-1 hover:underline">Message Seller</button>
+              </div>
+            </div>
+          ))}
+          {marketplace.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              No items for sale right now.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VisitorsSection({ profileId }: { profileId?: string }) {
+  const { data: visitors } = useRealtimeData("visitors");
+  const [visitorName, setVisitorName] = useState("");
+  const [visitDate, setVisitDate] = useState("");
+
+  const myVisitors = visitors.filter(v => v.profile_id === profileId);
+
+  const handleRegister = async () => {
+    if (!visitorName.trim() || !visitDate || !profileId) return;
+    await supabase.from("visitors").insert({
+      profile_id: profileId,
+      visitor_name: visitorName,
+      date_of_visit: new Date(visitDate).toISOString(),
+      status: "pending"
+    });
+    setVisitorName("");
+    setVisitDate("");
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-border bg-card p-6"
+      >
+        <div className="flex items-center gap-3 mb-6 border-b border-border pb-4">
+          <div className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
+            <Users size={20} />
+          </div>
+          <div>
+            <h2 className="font-bold text-lg">Register a Visitor</h2>
+            <p className="text-sm text-muted-foreground">Pre-register your guests for easier gate access.</p>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">Visitor Name</label>
+            <input
+              type="text"
+              value={visitorName}
+              onChange={(e) => setVisitorName(e.target.value)}
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1">Date & Time of Visit</label>
+            <input
+              type="datetime-local"
+              value={visitDate}
+              onChange={(e) => setVisitDate(e.target.value)}
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+        </div>
+        <button 
+          onClick={handleRegister}
+          disabled={!visitorName.trim() || !visitDate}
+          className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-50"
+        >
+          Generate Gate Pass
+        </button>
+      </motion.div>
+
+      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="border-b border-border px-5 py-4">
+          <h3 className="text-sm font-bold">Upcoming Visitors</h3>
+        </div>
+        <div className="divide-y divide-border">
+          {myVisitors.map((v) => (
+            <div key={v.id} className="flex items-center justify-between px-5 py-4">
+              <div>
+                <p className="font-bold">{v.visitor_name}</p>
+                <p className="text-xs text-muted-foreground">{new Date(v.date_of_visit).toLocaleString()}</p>
+              </div>
+              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                v.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-50 text-amber-600'
+              }`}>
+                {v.status}
+              </span>
+            </div>
+          ))}
+          {myVisitors.length === 0 && (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              No upcoming visitors.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
