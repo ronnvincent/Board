@@ -11,13 +11,15 @@ export interface SystemSettings {
   theme_color: string;
 }
 
+export const DEFAULT_THEME_COLOR = "#1f5149";
+
 const defaultSettings: SystemSettings = {
   platform_name: "BoardingHow",
   support_email: "support@boardinghow.com",
   allow_registration: true,
   maintenance_mode: false,
   dark_mode_default: false,
-  theme_color: "#1f5149"
+  theme_color: DEFAULT_THEME_COLOR
 };
 
 export const SETTINGS_STORAGE_KEY = "board_admin_settings";

@@ -52,7 +52,7 @@ const navItems: NavItem[] = [
 
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
-import { persistSettingsToStorage, SETTINGS_STORAGE_KEY } from "../context/SettingsContext";
+import { persistSettingsToStorage, SETTINGS_STORAGE_KEY, DEFAULT_THEME_COLOR } from "../context/SettingsContext";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -1203,7 +1203,7 @@ function SettingsPlaceholder() {
     allowRegistration: true,
     maintenanceMode: false,
     darkModeDefault: false,
-    themeColor: "#1f5149"
+    themeColor: DEFAULT_THEME_COLOR
   };
 
   const [settings, setSettings] = useState(() => {
@@ -1292,18 +1292,14 @@ function SettingsPlaceholder() {
     return () => window.removeEventListener("board-settings-updated", handleSettingsUpdate);
   }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setErrorMsg("");
-
+  const saveSettings = async (nextSettings: typeof settings, successMessage: string) => {
     const payload = {
-      platform_name: settings.platformName,
-      support_email: settings.supportEmail,
-      allow_registration: settings.allowRegistration,
-      maintenance_mode: settings.maintenanceMode,
-      dark_mode_default: settings.darkModeDefault,
-      theme_color: settings.themeColor,
+      platform_name: nextSettings.platformName,
+      support_email: nextSettings.supportEmail,
+      allow_registration: nextSettings.allowRegistration,
+      maintenance_mode: nextSettings.maintenanceMode,
+      dark_mode_default: nextSettings.darkModeDefault,
+      theme_color: nextSettings.themeColor,
     };
 
     try {
@@ -1331,11 +1327,38 @@ function SettingsPlaceholder() {
         }
       }
 
-      setSuccessMsg("Settings updated successfully!");
+      setSuccessMsg(successMessage);
       window.setTimeout(() => setSuccessMsg(""), 3000);
     } catch (error) {
       console.error("Unable to save settings:", error);
       setErrorMsg("The settings were stored locally, but the database update failed. Please retry once Supabase is available.");
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setErrorMsg("");
+
+    try {
+      await saveSettings(settings, "Settings updated successfully!");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleResetThemeColor = async () => {
+    const resetSettings = {
+      ...settings,
+      themeColor: DEFAULT_THEME_COLOR,
+    };
+
+    setSettings(resetSettings);
+    setErrorMsg("");
+    setIsSaving(true);
+
+    try {
+      await saveSettings(resetSettings, "Theme color restored to the default website color.");
     } finally {
       setIsSaving(false);
     }
@@ -1441,6 +1464,14 @@ function SettingsPlaceholder() {
                       <div className="size-10 rounded-xl border border-border shadow-inner" style={{ backgroundColor: settings.themeColor }}></div>
                       <input type="text" value={settings.themeColor} onChange={(e) => setSettings({...settings, themeColor: e.target.value})} className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary font-mono" />
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleResetThemeColor}
+                      disabled={isSaving}
+                      className="mt-2 rounded-xl border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+                    >
+                      Reset to default color
+                    </button>
                   </div>
                 </div>
               </div>
