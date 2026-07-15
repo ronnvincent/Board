@@ -936,15 +936,42 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
+    
     setIsSaving(true);
-    // Simulate save delay
-    setTimeout(() => {
-      setIsSaving(false);
+    
+    const formData = new FormData(e.currentTarget);
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
+    // Add other fields as needed here
+    
+    try {
+      let updateData: any = {};
+      
+      // If we're on the personal tab and have name fields
+      if (firstName || lastName) {
+        updateData.full_name = `${firstName || ''} ${lastName || ''}`.trim();
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', user.id);
+          
+        if (error) throw error;
+      }
+      
       setSuccessMsg("Changes saved successfully!");
       setTimeout(() => setSuccessMsg(""), 3000);
-    }, 800);
+    } catch (err) {
+      console.error("Error saving profile:", err);
+      alert("Failed to save changes. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1060,11 +1087,11 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">First Name</label>
-                      <input type="text" defaultValue={user?.fullName?.split(" ")[0] || ""} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                      <input type="text" name="firstName" defaultValue={user?.fullName?.split(" ")[0] || ""} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-muted-foreground">Last Name</label>
-                      <input type="text" defaultValue={user?.fullName?.split(" ")[1] || ""} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
+                      <input type="text" name="lastName" defaultValue={user?.fullName?.split(" ")[1] || ""} className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
