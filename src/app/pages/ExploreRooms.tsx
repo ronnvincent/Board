@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { MapPin, Wifi, Wind, Bath, Search, Filter, ArrowRight } from "lucide-react";
-import { useRealtimeData } from "../../hooks/useRealtimeData";
-import { supabase } from "../../../lib/supabase";
+import { useRealtimeData } from "../hooks/useRealtimeData";
+import { supabase } from "../../lib/supabase";
 
 export default function ExploreRooms() {
   const { data: rooms, loading: roomsLoading } = useRealtimeData("rooms");
