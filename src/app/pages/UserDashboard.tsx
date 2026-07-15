@@ -340,13 +340,17 @@ function MaintenanceSection({ room }: { room: any }) {
   const handleSubmit = async () => {
     if (!newRequest.trim() || !room) return;
     setSubmitting(true);
-    await supabase.from("maintenance_requests").insert({
+    const { error } = await supabase.from("maintenance_requests").insert({
       room_id: room.id,
       issue: newRequest,
       status: "pending",
       date_reported: new Date().toLocaleDateString()
     });
-    setNewRequest("");
+    if (error) {
+      alert("Failed to submit request: " + error.message);
+    } else {
+      setNewRequest("");
+    }
     setSubmitting(false);
   };
 
@@ -368,7 +372,7 @@ function MaintenanceSection({ room }: { room: any }) {
         className="rounded-2xl border border-border bg-card p-5"
       >
         <h3 className="text-sm font-bold mb-3">Submit a Request for Room {room.number}</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             value={newRequest}
@@ -377,20 +381,22 @@ function MaintenanceSection({ room }: { room: any }) {
             placeholder="Describe the issue (e.g. Broken AC)..."
             className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
           />
-          <button
-            onClick={() => alert("Photo upload feature coming soon! (Simulation)")}
-            className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-bold text-muted-foreground hover:bg-muted transition shrink-0"
-            title="Attach a photo"
-          >
-            <ImageIcon size={14} />
-          </button>
-          <button 
-            onClick={handleSubmit}
-            disabled={submitting || !newRequest.trim()}
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition shrink-0 disabled:opacity-50"
-          >
-            <Send size={14} /> Submit
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => alert("Photo upload feature coming soon! (Simulation)")}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-bold text-muted-foreground hover:bg-muted transition"
+              title="Attach a photo"
+            >
+              <ImageIcon size={14} />
+            </button>
+            <button 
+              onClick={handleSubmit}
+              disabled={submitting || !newRequest.trim()}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50"
+            >
+              <Send size={14} /> Submit
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -437,16 +443,25 @@ function CommunitySection({ profileId, houseId }: { profileId?: string, houseId?
   const [newItem, setNewItem] = useState("");
   const [newPrice, setNewPrice] = useState("");
 
+  const [isPosting, setIsPosting] = useState(false);
+
   const handlePostItem = async () => {
     if (!newItem.trim() || !newPrice || !profileId) return;
-    await supabase.from("marketplace_items").insert({
+    setIsPosting(true);
+    const { error } = await supabase.from("marketplace_items").insert({
       profile_id: profileId,
       item_name: newItem,
       price: parseFloat(newPrice),
       status: "available"
     });
-    setNewItem("");
-    setNewPrice("");
+    
+    if (error) {
+      alert("Failed to post item: " + error.message);
+    } else {
+      setNewItem("");
+      setNewPrice("");
+    }
+    setIsPosting(false);
   };
 
   return (
@@ -478,7 +493,7 @@ function CommunitySection({ profileId, houseId }: { profileId?: string, houseId?
         <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight">Marketplace</h3>
         <div className="rounded-2xl border border-border bg-card p-5 mb-4">
           <p className="text-sm font-bold mb-3">Sell an Item</p>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               placeholder="What are you selling?"
@@ -486,19 +501,22 @@ function CommunitySection({ profileId, houseId }: { profileId?: string, houseId?
               onChange={(e) => setNewItem(e.target.value)}
               className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
             />
-            <input
-              type="number"
-              placeholder="Price (₱)"
-              value={newPrice}
-              onChange={(e) => setNewPrice(e.target.value)}
-              className="w-24 rounded-xl border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
-            />
-            <button
-              onClick={handlePostItem}
-              className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39]"
-            >
-              Post
-            </button>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Price (₱)"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+                className="w-full sm:w-24 rounded-xl border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+              />
+              <button
+                onClick={handlePostItem}
+                disabled={isPosting}
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39] disabled:opacity-50"
+              >
+                {isPosting ? "..." : "Post"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -531,18 +549,27 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
   const [visitorName, setVisitorName] = useState("");
   const [visitDate, setVisitDate] = useState("");
 
+  const [isRegistering, setIsRegistering] = useState(false);
+
   const myVisitors = visitors.filter(v => v.profile_id === profileId);
 
   const handleRegister = async () => {
     if (!visitorName.trim() || !visitDate || !profileId) return;
-    await supabase.from("visitors").insert({
+    setIsRegistering(true);
+    const { error } = await supabase.from("visitors").insert({
       profile_id: profileId,
       visitor_name: visitorName,
       date_of_visit: new Date(visitDate).toISOString(),
       status: "pending"
     });
-    setVisitorName("");
-    setVisitDate("");
+    
+    if (error) {
+      alert("Failed to register visitor: " + error.message);
+    } else {
+      setVisitorName("");
+      setVisitDate("");
+    }
+    setIsRegistering(false);
   };
 
   return (
@@ -584,10 +611,10 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
         </div>
         <button 
           onClick={handleRegister}
-          disabled={!visitorName.trim() || !visitDate}
+          disabled={!visitorName.trim() || !visitDate || isRegistering}
           className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-50"
         >
-          Generate Gate Pass
+          {isRegistering ? "Generating..." : "Generate Gate Pass"}
         </button>
       </motion.div>
 
