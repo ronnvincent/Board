@@ -26,7 +26,8 @@ import {
   Search,
   CheckCircle2,
   XCircle,
-  Megaphone
+  Megaphone,
+  Clock
 } from "lucide-react";
 import { useEffect } from "react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
@@ -1156,12 +1157,20 @@ const playSound = (type: 'success' | 'error') => {
 
 function SecurityGateSection() {
   const { data: visitors } = useRealtimeData("visitors");
+  const { data: profiles } = useRealtimeData("profiles");
+  const { data: tenants } = useRealtimeData("tenants");
+  const { data: rooms } = useRealtimeData("rooms");
+  const { data: houses } = useRealtimeData("houses");
+
   const [scanCode, setScanCode] = useState("");
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
 
   const matchedVisitor = visitors.find((v) => v.id === lastScanned);
+  const approvedVisitors = visitors
+    .filter((v) => v.status === "approved")
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
   const handleScan = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1342,6 +1351,73 @@ function SecurityGateSection() {
             )}
           </motion.div>
         )}
+      </div>
+
+      <div className="lg:col-span-2 mt-4 space-y-6">
+        <h3 className="font-['Libre_Baskerville'] text-xl tracking-tight flex items-center gap-2">
+          <Clock size={20} className="text-muted-foreground" />
+          Approved Visitors History
+        </h3>
+        
+        <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
+          {approvedVisitors.length === 0 ? (
+            <div className="p-12 text-center">
+              <CheckCircle2 size={32} className="mx-auto mb-4 text-muted-foreground/30" />
+              <p className="text-sm font-medium text-foreground">No visitors approved yet</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/30">
+                  <tr>
+                    <th className="px-6 py-4 font-bold text-muted-foreground">Visitor Name</th>
+                    <th className="px-6 py-4 font-bold text-muted-foreground">Invited By (Tenant)</th>
+                    <th className="px-6 py-4 font-bold text-muted-foreground">Room / House</th>
+                    <th className="px-6 py-4 font-bold text-muted-foreground">Date of Visit</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {approvedVisitors.map((v) => {
+                    const tenantProfile = profiles.find((p) => p.id === v.profile_id);
+                    const tenantRecord = tenants.find((t) => t.profile_id === v.profile_id);
+                    const room = rooms.find((r) => r.id === tenantRecord?.room_id);
+                    const house = houses.find((h) => h.id === room?.house_id);
+
+                    const tenantName = tenantProfile 
+                      ? `${tenantProfile.first_name} ${tenantProfile.last_name}`
+                      : "Unknown Tenant";
+                    
+                    return (
+                      <tr key={v.id} className="hover:bg-muted/20 transition">
+                        <td className="px-6 py-4 font-bold">{v.visitor_name}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="bg-primary/10 text-primary p-1.5 rounded-full">
+                              <User size={14} />
+                            </div>
+                            <span>{tenantName}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground">
+                          {room ? (
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin size={14} /> Room {room.room_number}, {house?.name || "Unknown House"}
+                            </span>
+                          ) : (
+                            "No Room Assigned"
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground">
+                          {new Date(v.date_of_visit).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
