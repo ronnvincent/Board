@@ -1874,6 +1874,9 @@ function MessagesSection({
   const partners = partnerIds.map(id => profiles.find((p: any) => p.id === id)).filter(Boolean);
   const activePartner = profiles.find((p: any) => p.id === activeChatUserId);
 
+  const activePartnerTenant = tenants.find((t: any) => t.profile_id === activeChatUserId);
+  const activePartnerRoom = rooms.find((r: any) => r.id === activePartnerTenant?.room_id);
+
   const chatHistory = myMessages.filter((m: any) => 
     (m.sender_id === currentUserId && m.receiver_id === activeChatUserId) ||
     (m.receiver_id === currentUserId && m.sender_id === activeChatUserId)
@@ -1916,24 +1919,29 @@ function MessagesSection({
           {partners.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground p-4">No conversations yet.</p>
           ) : (
-            partners.map((p: any) => (
-              <button
-                key={p.id}
-                onClick={() => setActiveChatUserId(p.id)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl transition ${activeChatUserId === p.id ? "bg-primary/10 text-primary" : "hover:bg-muted/50"}`}
-              >
-                {p.avatar_url ? (
-                  <img src={p.avatar_url} alt="Avatar" className="size-10 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className="grid size-10 place-items-center rounded-full bg-primary/20 text-primary shrink-0">
-                    <User size={16} />
+            partners.map((p: any) => {
+              const pTenant = tenants.find((t: any) => t.profile_id === p.id);
+              const pRoom = rooms.find((r: any) => r.id === pTenant?.room_id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setActiveChatUserId(p.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition ${activeChatUserId === p.id ? "bg-primary/10 text-primary" : "hover:bg-muted/50"}`}
+                >
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt="Avatar" className="size-10 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="grid size-10 place-items-center rounded-full bg-primary/20 text-primary shrink-0">
+                      <User size={16} />
+                    </div>
+                  )}
+                  <div className="text-left overflow-hidden">
+                    <p className="font-bold text-sm truncate">{p.full_name}</p>
+                    {pRoom && <p className="text-xs text-muted-foreground truncate">Room {pRoom.number}</p>}
                   </div>
-                )}
-                <div className="text-left overflow-hidden">
-                  <p className="font-bold text-sm truncate">{p.full_name}</p>
-                </div>
-              </button>
-            ))
+                </button>
+              );
+            })
           )}
         </div>
       </div>
@@ -1957,7 +1965,9 @@ function MessagesSection({
               )}
               <div className="overflow-hidden">
                 <p className="font-bold truncate">{activePartner.full_name}</p>
-                <p className="text-xs text-muted-foreground">Tenant</p>
+                <p className="text-xs text-muted-foreground">
+                  Tenant {activePartnerRoom && ` • Room ${activePartnerRoom.number}`}
+                </p>
               </div>
             </div>
             
