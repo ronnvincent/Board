@@ -9,6 +9,7 @@ import {
   Users,
   UserPlus,
   Activity,
+  User,
   ChevronRight,
   MoreHorizontal,
 } from "lucide-react";
@@ -41,7 +42,7 @@ export default function AdministratorDashboard() {
       {activeNav === "dashboard" && <OverviewSection />}
       {activeNav === "admins" && <AdminsSection />}
       {activeNav === "houses" && <HousesSection />}
-      {activeNav === "users" && <UsersPlaceholder />}
+      {activeNav === "users" && <UsersSection />}
       {activeNav === "activity" && <ActivitySection />}
       {activeNav === "settings" && <SettingsPlaceholder />}
     </DashboardLayout>
@@ -299,12 +300,69 @@ function ActivitySection() {
   );
 }
 
-function UsersPlaceholder() {
+function UsersSection() {
+  const { data: profiles, loading } = useRealtimeData("profiles", "created_at", true);
+
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="grid size-16 place-items-center rounded-2xl bg-muted mb-4"><Users size={24} className="text-muted-foreground" /></div>
-      <h3 className="text-lg font-bold">All Users</h3>
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">User management will be available once Supabase is integrated. All registered users will appear here.</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-['Libre_Baskerville'] text-2xl tracking-tight">All Users</h2>
+          <p className="text-sm text-muted-foreground mt-1">Manage all registered accounts across the platform.</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/50 text-muted-foreground">
+              <tr>
+                <th className="px-6 py-4 font-medium">Name</th>
+                <th className="px-6 py-4 font-medium">Role</th>
+                <th className="px-6 py-4 font-medium">Joined Date</th>
+                <th className="px-6 py-4 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {loading ? (
+                <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Loading users...</td></tr>
+              ) : profiles.length === 0 ? (
+                <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No users found.</td></tr>
+              ) : (
+                profiles.map((profile: any) => (
+                  <tr key={profile.id} className="transition-colors hover:bg-muted/30">
+                    <td className="px-6 py-4 font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="grid size-8 place-items-center rounded-full bg-primary/10 text-primary">
+                          <User size={14} />
+                        </div>
+                        {profile.full_name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`capitalize text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        profile.role === 'administrator' ? 'bg-amber-100 text-amber-700' :
+                        profile.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                        'bg-emerald-100 text-emerald-700'
+                      }`}>
+                        {profile.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {new Date(profile.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="text-muted-foreground hover:text-foreground">
+                        <MoreHorizontal size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
