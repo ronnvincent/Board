@@ -824,7 +824,8 @@ function MaintenanceSection() {
     if (!requestIssue.trim()) return;
     setAdding(true);
     await supabase.from("maintenance_requests").insert({ 
-      issue: requestIssue.trim(),
+      subject: requestIssue.trim(),
+      description: requestIssue.trim(),
       room_id: requestRoomId || null,
       status: "pending",
       date_reported: new Date().toLocaleDateString()
@@ -906,7 +907,7 @@ function MaintenanceSection() {
                   {m.status === "done" ? <Check size={16} /> : m.status === "in-progress" ? <Wrench size={16} /> : <AlertCircle size={16} />}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{m.issue}</p>
+                  <p className="text-sm font-medium">{m.subject || m.description}</p>
                   <p className="text-xs text-muted-foreground">Room {m.room_id || "Unassigned"} · {m.date_reported}</p>
                 </div>
               </div>

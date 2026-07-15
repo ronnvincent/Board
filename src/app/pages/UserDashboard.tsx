@@ -850,7 +850,6 @@ function MaintenanceSectionV2({
     const payload = {
       room_id: room.id,
       tenant_id: tenant.id,
-      issue: subject.trim(),
       subject: subject.trim(),
       description: description.trim() || subject.trim(),
       priority,
@@ -898,7 +897,7 @@ function MaintenanceSectionV2({
       return;
     }
 
-    const intro = `Follow-up for maintenance request: ${req.subject || req.issue || "Room issue"}`;
+    const intro = `Follow-up for maintenance request: ${req.subject || "Room issue"}`;
     await supabase.from("messages").insert({
       sender_id: tenant.profile_id,
       receiver_id: firstResponder.id,
@@ -1000,7 +999,7 @@ function MaintenanceSectionV2({
                         {isMaintenanceOpen(normalizedStatus) ? <Clock size={16} /> : <CheckCircle2 size={16} />}
                       </div>
                       <div>
-                        <p className="text-sm font-bold">{req.subject || req.issue || originalDesc}</p>
+                        <p className="text-sm font-bold">{req.subject || originalDesc}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {new Date(req.created_at || new Date()).toLocaleDateString()} · Priority: {req.priority || "normal"}
                         </p>
@@ -1017,7 +1016,7 @@ function MaintenanceSectionV2({
                   <div className="mt-4 space-y-3 pl-0 sm:pl-12">
                     <div className="rounded-xl border border-border bg-muted/30 p-3">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description</p>
-                      <p className="mt-1 text-sm">{originalDesc || req.issue}</p>
+                      <p className="mt-1 text-sm">{originalDesc || req.subject}</p>
                     </div>
                     {adminReply && (
                       <div className="rounded-xl border border-primary/10 bg-primary/5 p-3">

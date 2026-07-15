@@ -149,7 +149,10 @@ export interface Database {
         Row: {
           id: string
           room_id: string | null
-          issue: string
+          tenant_id: string | null
+          subject: string
+          description: string | null
+          priority: string | null
           status: 'pending' | 'in-progress' | 'done'
           date_reported: string | null
           image_url: string | null
@@ -158,7 +161,10 @@ export interface Database {
         Insert: {
           id?: string
           room_id?: string | null
-          issue: string
+          tenant_id?: string | null
+          subject: string
+          description?: string | null
+          priority?: string | null
           status?: 'pending' | 'in-progress' | 'done'
           date_reported?: string | null
           image_url?: string | null
@@ -167,7 +173,10 @@ export interface Database {
         Update: {
           id?: string
           room_id?: string | null
-          issue?: string
+          tenant_id?: string | null
+          subject?: string
+          description?: string | null
+          priority?: string | null
           status?: 'pending' | 'in-progress' | 'done'
           date_reported?: string | null
           image_url?: string | null
