@@ -478,7 +478,11 @@ function UsersSection() {
   const { data: profiles, loading } = useRealtimeData("profiles", "created_at", true);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
-    await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
+    const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
+    if (error) {
+      console.error("Failed to update role:", error);
+      alert("Failed to update role: " + error.message);
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -525,7 +529,7 @@ function UsersSection() {
                     </td>
                     <td className="px-6 py-4">
                       <select 
-                        value={profile.role}
+                        value={profile.role === 'resident' ? 'user' : profile.role}
                         onChange={(e) => handleRoleChange(profile.id, e.target.value)}
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full outline-none border border-transparent hover:border-border cursor-pointer appearance-none text-center ${
                           profile.role === 'administrator' ? 'bg-amber-100 text-amber-700' :
@@ -533,7 +537,7 @@ function UsersSection() {
                           'bg-emerald-100 text-emerald-700'
                         }`}
                       >
-                        <option value="resident">Resident</option>
+                        <option value="user">Resident</option>
                         <option value="admin">Admin</option>
                         <option value="administrator">Administrator</option>
                       </select>
