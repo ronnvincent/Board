@@ -172,11 +172,21 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl border border-border bg-card p-6"
       >
-        <p className="font-['DM_Mono'] text-[10px] uppercase tracking-[.12em] text-muted-foreground mb-2">Welcome home</p>
-        <h2 className="font-['Libre_Baskerville'] text-2xl tracking-tight">
-          Good day, <span className="text-primary">{userName.split(" ")[0]}</span>
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">Here's a quick look at your room and dues.</p>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div>
+            <p className="font-['DM_Mono'] text-[10px] uppercase tracking-[.12em] text-muted-foreground mb-2">Welcome home</p>
+            <h2 className="font-['Libre_Baskerville'] text-2xl tracking-tight">
+              Good day, <span className="text-primary">{userName.split(" ")[0]}</span>
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">Here's a quick look at your room and dues.</p>
+          </div>
+          <button 
+            onClick={() => setIsLeaving(true)} 
+            className="text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2.5 rounded-xl transition shrink-0"
+          >
+            Request to Leave Room
+          </button>
+        </div>
       </motion.div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -300,13 +310,6 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
         </motion.div>
       </div>
 
-      <div className="pt-6 border-t border-border mt-8 flex justify-end">
-        <button 
-          onClick={() => setIsLeaving(true)} 
-          className="text-xs font-bold text-red-500 hover:underline px-4 py-2 rounded-xl hover:bg-red-50 transition"
-        >
-          Request to Leave Room
-        </button>
       </div>
 
       <AnimatePresence>
