@@ -23,8 +23,8 @@ const features = [
 function BrandMark() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="grid size-9 place-items-center rounded-[13px] bg-[#e6b65c] text-[#1d5148]">
-        <Building2 size={19} strokeWidth={2.3} />
+      <div className="grid size-10 place-items-center rounded-xl bg-white overflow-hidden">
+        <img src="/logo.png" alt="BoardingHow Logo" className="w-full h-full object-cover" />
       </div>
       <span className="font-['DM_Sans'] text-[18px] font-bold tracking-[-0.03em] text-[#fffdf8]">
         Boarding<span className="text-[#e6b65c]">How</span>

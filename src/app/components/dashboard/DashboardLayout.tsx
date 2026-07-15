@@ -60,8 +60,8 @@ export default function DashboardLayout({
         {/* Logo */}
         <div className="flex items-center justify-between px-4 py-5 border-b border-border">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="grid size-9 shrink-0 place-items-center rounded-[13px] bg-primary text-primary-foreground">
-              <Building2 size={19} strokeWidth={2.3} />
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e6eedb] overflow-hidden">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
             {!collapsed && (
               <motion.span

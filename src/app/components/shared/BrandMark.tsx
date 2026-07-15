@@ -14,13 +14,9 @@ export default function BrandMark({ light = false, size = "md" }: BrandMarkProps
   return (
     <div className="flex items-center gap-2.5">
       <div
-        className={`grid ${boxSize} place-items-center ${radius} ${
-          light
-            ? "bg-[#e6b65c] text-[#1d5148]"
-            : "bg-primary text-primary-foreground"
-        }`}
+        className={`grid ${boxSize} place-items-center ${radius} bg-white overflow-hidden`}
       >
-        <Building2 size={iconSize} strokeWidth={2.3} />
+        <img src="/logo.png" alt="BoardingHow Logo" className="w-full h-full object-cover" />
       </div>
       <span
         className={`font-['DM_Sans'] ${textSize} font-bold tracking-[-0.03em] ${

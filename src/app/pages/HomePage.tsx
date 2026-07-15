@@ -25,8 +25,8 @@ const benefits = [
 function BrandMark({ light = false }: { light?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
-      <div className={`grid size-9 place-items-center rounded-[13px] ${light ? "bg-[#e6b65c] text-[#1d5148]" : "bg-primary text-primary-foreground"}`}>
-        <Building2 size={19} strokeWidth={2.3} />
+      <div className="grid size-10 place-items-center rounded-xl bg-white overflow-hidden">
+        <img src="/logo.png" alt="BoardingHow Logo" className="w-full h-full object-cover" />
       </div>
       <span className={`font-['DM_Sans'] text-[18px] font-bold tracking-[-0.03em] ${light ? "text-[#fffdf8]" : "text-foreground"}`}>
         Boarding<span className={light ? "text-[#e6b65c]" : "text-primary"}>How</span>
