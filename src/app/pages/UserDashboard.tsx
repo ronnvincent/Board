@@ -127,8 +127,36 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
   const { data: maintenance } = useRealtimeData("maintenance_requests");
   const { data: houses } = useRealtimeData("houses");
   const { data: notices } = useRealtimeData("notices", "created_at", true);
+  const { data: profiles } = useRealtimeData("profiles");
   const [paying, setPaying] = useState(false);
   const [activeLocationHouse, setActiveLocationHouse] = useState<any>(null);
+  
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [leaveReason, setLeaveReason] = useState("");
+  const [leavingSubmit, setLeavingSubmit] = useState(false);
+
+  const handleLeaveRoom = async () => {
+    if (!leaveReason.trim()) return;
+    setLeavingSubmit(true);
+    
+    try {
+      const admins = profiles.filter((p: any) => p.role === 'admin' || p.role === 'administrator');
+      const messagePromises = admins.map((admin: any) => 
+        supabase.from("messages").insert({
+          sender_id: tenant.profile_id,
+          receiver_id: admin.id,
+          content: `Notice of Move Out. Room: ${room?.number || 'Unknown'}. Reason: ${leaveReason}`
+        })
+      );
+      await Promise.all(messagePromises);
+      await supabase.from("tenants").delete().eq("id", tenant.id);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to process leave request");
+    }
+    // No need to setLeavingSubmit(false) if tenant deletion triggers unmount, 
+    // but just in case it fails we should handle it (caught above).
+  };
   // Only count open requests for THIS room
   const openRequests = maintenance.filter((m: any) => m.room_id === room?.id && m.status !== "done").length;
   const assignedHouse = houses.find((house: any) => house.id === room?.house_id);
@@ -261,14 +289,63 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
                 </p>
               </div>
             ) : (
-              <>
-                <Megaphone size={20} className="text-muted-foreground/30 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">No new announcements</p>
-              </>
+              <div className="text-center text-muted-foreground">
+                <Megaphone size={24} className="mx-auto mb-2 opacity-20" />
+                <p className="text-sm">No new announcements</p>
+              </div>
             )}
           </div>
         </motion.div>
       </div>
+
+      <div className="pt-6 border-t border-border mt-8 flex justify-end">
+        <button 
+          onClick={() => setIsLeaving(true)} 
+          className="text-xs font-bold text-red-500 hover:underline px-4 py-2 rounded-xl hover:bg-red-50 transition"
+        >
+          Request to Leave Room
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {isLeaving && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl"
+            >
+              <h3 className="text-xl font-bold font-['Libre_Baskerville'] mb-2">Leave Room</h3>
+              <p className="text-sm text-muted-foreground mb-4">Please provide a reason for leaving. Your request and reason will be sent to the administration, and you will immediately be unassigned from this room.</p>
+              
+              <textarea
+                value={leaveReason}
+                onChange={(e) => setLeaveReason(e.target.value)}
+                placeholder="Reason for leaving..."
+                className="w-full h-32 rounded-xl border border-border bg-background p-4 text-sm outline-none focus:border-red-500 mb-4 resize-none"
+              />
+              
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setIsLeaving(false)}
+                  disabled={leavingSubmit}
+                  className="rounded-xl px-4 py-2.5 text-sm font-bold text-muted-foreground hover:text-foreground transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLeaveRoom}
+                  disabled={leavingSubmit || !leaveReason.trim()}
+                  className="rounded-xl bg-red-500 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
+                >
+                  {leavingSubmit ? "Processing..." : "Confirm & Leave"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

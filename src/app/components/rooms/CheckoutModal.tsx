@@ -246,6 +246,11 @@ export default function CheckoutModal({
                   )}
                 </AnimatePresence>
 
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-xs flex gap-2 items-start text-left">
+                  <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                  <p><strong>Non-Refundable Policy:</strong> By proceeding, you acknowledge that all rent payments and deposits are strictly non-refundable.</p>
+                </div>
+
                 <button
                   type="submit"
                   disabled={isSubmitting}
