@@ -1077,11 +1077,13 @@ function UsersSection() {
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full outline-none border border-transparent hover:border-border cursor-pointer appearance-none text-center ${
                           profile.role === 'administrator' ? 'bg-amber-100 text-amber-700' :
                           profile.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                          profile.role === 'staff' ? 'bg-purple-100 text-purple-700' :
                           'bg-emerald-100 text-emerald-700'
                         }`}
                       >
-                        <option value="user">Resident</option>
-                        <option value="admin">Admin</option>
+                        <option value="user">Tenant (User)</option>
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin (Manager)</option>
                         <option value="administrator">Administrator</option>
                       </select>
                     </td>
