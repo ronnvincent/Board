@@ -1997,9 +1997,10 @@ function AnnouncementsSection() {
         setIsPosting(false);
         return;
       }
-      const result = await supabase.from("notices").insert(
-        houses.map((house: any) => ({ ...payload, house_id: house.id }))
-      );
+      const result = await supabase.from("notices").insert({
+        ...payload,
+        house_id: null,
+      });
       error = result.error;
     } else {
       const result = await supabase.from("notices").insert({
