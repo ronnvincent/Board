@@ -18,7 +18,9 @@ import {
   MapPin,
   QrCode,
   X,
-  Clock
+  Clock,
+  Smile,
+  Paperclip
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
@@ -28,6 +30,8 @@ import { supabase } from "../../lib/supabase";
 import ExploreRooms, { LocationMapModal } from "./ExploreRooms";
 import MockPaymentGateway from "../components/shared/MockPaymentGateway";
 import { QRCodeSVG } from "qrcode.react";
+import EmojiPicker from 'emoji-picker-react';
+import { compressImageToBase64 } from "../../lib/imageUtils";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={18} />, id: "dashboard" },
@@ -863,6 +867,26 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
   
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUserId || !activeChatUserId) return;
+    setSending(true);
+    try {
+      const base64 = await compressImageToBase64(file, 800, 0.7);
+      const { error } = await supabase.from("messages").insert({
+        sender_id: currentUserId,
+        receiver_id: activeChatUserId,
+        content: base64
+      });
+      if (error) alert("Failed to send image");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to process image");
+    }
+    setSending(false);
+  };
 
   const myMessages = allMessages.filter((m: any) => m.sender_id === currentUserId || m.receiver_id === currentUserId);
 
@@ -889,7 +913,10 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
       content: newMessage
     });
     if (error) alert("Failed to send message: " + error.message);
-    else setNewMessage("");
+    else {
+      setNewMessage("");
+      setShowEmoji(false);
+    }
     setSending(false);
   };
 
@@ -946,7 +973,11 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
                   return (
                     <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[75%] rounded-2xl px-5 py-3 text-sm ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted border border-border rounded-bl-sm"}`}>
-                        <p>{msg.content}</p>
+                        {msg.content.startsWith("data:image/") ? (
+                          <img src={msg.content} alt="Attachment" className="rounded-xl max-h-64 object-cover" />
+                        ) : (
+                          <p>{msg.content}</p>
+                        )}
                         <p className={`text-[10px] mt-1 text-right ${isMe ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                           {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </p>
@@ -958,21 +989,47 @@ function MessagesSection({ currentUserId, activeChatUserId, setActiveChatUserId 
             </div>
 
             <div className="p-4 border-t border-border bg-card">
-              <div className="flex gap-2 relative">
+              <div className="flex gap-2 relative items-center">
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowEmoji(!showEmoji)} 
+                    className="p-2 text-muted-foreground hover:text-foreground transition rounded-full hover:bg-muted"
+                  >
+                    <Smile size={20} />
+                  </button>
+                  <AnimatePresence>
+                    {showEmoji && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-12 left-0 z-50 shadow-xl rounded-xl overflow-hidden"
+                      >
+                        <EmojiPicker onEmojiClick={(e) => setNewMessage(prev => prev + e.emoji)} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                <label className="p-2 text-muted-foreground hover:text-foreground transition rounded-full hover:bg-muted cursor-pointer">
+                  <Paperclip size={20} />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={sending} />
+                </label>
+
                 <input
                   type="text"
                   placeholder="Type your message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1 rounded-full border border-border bg-background px-6 py-3 text-sm outline-none focus:border-primary pr-12 transition"
+                  className="flex-1 rounded-full border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary pr-12 transition"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={sending || !newMessage.trim()}
-                  className="absolute right-2 top-2 bottom-2 aspect-square grid place-items-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 aspect-square grid place-items-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition w-8 h-8"
                 >
-                  <Send size={16} className="ml-0.5" />
+                  <Send size={14} className="ml-0.5" />
                 </button>
               </div>
             </div>
