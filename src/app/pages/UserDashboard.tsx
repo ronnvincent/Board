@@ -17,6 +17,8 @@ import StatCard from "../components/dashboard/StatCard";
 import { useAuth } from "../context/AuthContext";
 import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
+import ExploreRooms from "./ExploreRooms";
+import MockPaymentGateway from "../components/shared/MockPaymentGateway";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={18} />, id: "dashboard" },
@@ -46,7 +48,9 @@ export default function UserDashboard() {
       pageTitle={navItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
     >
       {!myTenant && !tenantsLoading && (
-        <UnassignedState userName={user?.fullName ?? "Resident"} />
+        <div className="-mt-8">
+          <ExploreRooms />
+        </div>
       )}
       
       {myTenant && (
@@ -63,25 +67,11 @@ export default function UserDashboard() {
   );
 }
 
-function UnassignedState({ userName }: { userName: string }) {
-  return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center text-center px-4">
-      <div className="grid size-16 place-items-center rounded-2xl bg-primary/10 text-primary mb-6">
-        <Clock size={28} />
-      </div>
-      <h2 className="font-['Libre_Baskerville'] text-2xl tracking-tight mb-2">
-        Welcome, {userName}!
-      </h2>
-      <p className="max-w-md text-sm text-muted-foreground leading-relaxed">
-        Your account is ready, but the House Admin hasn't assigned you to a specific room yet. 
-        Once you're assigned, your room details, rent status, and maintenance features will appear here automatically.
-      </p>
-    </div>
-  );
-}
+// UnassignedState component removed in favor of ExploreRooms
 
 function OverviewSection({ userName, tenant, room }: { userName: string, tenant: any, room: any }) {
   const { data: maintenance } = useRealtimeData("maintenance_requests");
+  const [paying, setPaying] = useState(false);
   // Only count open requests for THIS room
   const openRequests = maintenance.filter((m: any) => m.room_id === room?.id && m.status !== "done").length;
 
@@ -139,12 +129,27 @@ function OverviewSection({ userName, tenant, room }: { userName: string, tenant:
               </span>
             </div>
             {tenant.rent_status !== "Paid" && (
-              <button className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition">
+              <button 
+                onClick={() => setPaying(true)}
+                className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition"
+              >
                 Pay Now
               </button>
             )}
           </div>
         </motion.div>
+
+        {paying && (
+          <MockPaymentGateway 
+            amount={room?.price || 5000} 
+            description={`Rent Payment for Room ${room?.number || ''}`}
+            onCancel={() => setPaying(false)}
+            onSuccess={async () => {
+              setPaying(false);
+              await supabase.from("tenants").update({ rent_status: "Paid" }).eq("id", tenant.id);
+            }}
+          />
+        )}
 
         {/* Announcements quick view */}
         <motion.div
@@ -207,6 +212,10 @@ function RoomSection({ tenant, room }: { tenant: any, room: any }) {
 }
 
 function RentSection({ tenant }: { tenant: any }) {
+  const [paying, setPaying] = useState(false);
+  const { data: rooms } = useRealtimeData("rooms");
+  const myRoom = rooms.find((r) => r.id === tenant.room_id);
+
   return (
     <div className="space-y-6 max-w-2xl">
       <motion.div
@@ -228,11 +237,26 @@ function RentSection({ tenant }: { tenant: any }) {
           </span>
         </div>
         {tenant.rent_status !== "Paid" && (
-          <button className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition">
+          <button 
+            onClick={() => setPaying(true)}
+            className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition"
+          >
             Pay Now
           </button>
         )}
       </motion.div>
+
+      {paying && (
+        <MockPaymentGateway 
+          amount={myRoom?.price || 5000} 
+          description={`Rent Payment for Room ${myRoom?.number || ''}`}
+          onCancel={() => setPaying(false)}
+          onSuccess={async () => {
+            setPaying(false);
+            await supabase.from("tenants").update({ rent_status: "Paid" }).eq("id", tenant.id);
+          }}
+        />
+      )}
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <div className="border-b border-border px-5 py-4">
