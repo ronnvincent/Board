@@ -515,48 +515,55 @@ function OverviewSection({ userName, tenant, room, onNavigate }: { userName: str
         />
       )}
 
-      <AnimatePresence>
-        {isLeaving && typeof document !== "undefined" && createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              className="w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {isLeaving && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
             >
-              <div className="shrink-0 p-6 pb-2">
-                <h3 className="font-['Libre_Baskerville'] text-xl font-bold mb-2">Leave Room</h3>
-                <p className="mb-2 text-sm text-muted-foreground">Please provide a reason. Your request will be sent to the administration and your room assignment will be released.</p>
-              </div>
-              <div className="flex-1 overflow-y-auto px-6 min-h-0">
-                <textarea
-                  value={leaveReason}
-                  onChange={(e) => setLeaveReason(e.target.value)}
-                  placeholder="Reason for leaving..."
-                  className="mb-2 h-32 w-full resize-none rounded-xl border border-border bg-background p-4 text-sm outline-none focus:border-red-500"
-                />
-              </div>
-              <div className="shrink-0 flex justify-end gap-3 p-6 pt-2">
-                <button
-                  onClick={() => setIsLeaving(false)}
-                  disabled={leavingSubmit}
-                  className="rounded-xl px-4 py-2.5 text-sm font-bold text-muted-foreground transition hover:text-foreground disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleLeaveRoom}
-                  disabled={leavingSubmit || !leaveReason.trim()}
-                  className="rounded-xl bg-red-500 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
-                >
-                  {leavingSubmit ? "Processing..." : "Confirm & Leave"}
-                </button>
-              </div>
+              <motion.div
+                initial={{ scale: 0.96 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.96 }}
+                className="w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
+              >
+                <div className="shrink-0 p-6 pb-2">
+                  <h3 className="font-['Libre_Baskerville'] text-xl font-bold mb-2">Leave Room</h3>
+                  <p className="mb-2 text-sm text-muted-foreground">Please provide a reason. Your request will be sent to the administration and your room assignment will be released.</p>
+                </div>
+                <div className="flex-1 overflow-y-auto px-6 min-h-0">
+                  <textarea
+                    value={leaveReason}
+                    onChange={(e) => setLeaveReason(e.target.value)}
+                    placeholder="Reason for leaving..."
+                    className="mb-2 h-32 w-full resize-none rounded-xl border border-border bg-background p-4 text-sm outline-none focus:border-red-500"
+                  />
+                </div>
+                <div className="shrink-0 flex justify-end gap-3 p-6 pt-2">
+                  <button
+                    onClick={() => setIsLeaving(false)}
+                    disabled={leavingSubmit}
+                    className="rounded-xl px-4 py-2.5 text-sm font-bold text-muted-foreground transition hover:text-foreground disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleLeaveRoom}
+                    disabled={leavingSubmit || !leaveReason.trim()}
+                    className="rounded-xl bg-red-500 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
+                  >
+                    {leavingSubmit ? "Processing..." : "Confirm & Leave"}
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </div>,
-          document.body
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
