@@ -48,6 +48,24 @@ create table if not exists public.system_settings (
   updated_at timestamptz
 );
 
+alter table if exists public.system_settings
+  add column if not exists id uuid default gen_random_uuid(),
+  add column if not exists platform_name text default 'BoardingHow',
+  add column if not exists support_email text default 'support@boardinghow.com',
+  add column if not exists allow_registration boolean default true,
+  add column if not exists maintenance_mode boolean default false,
+  add column if not exists dark_mode_default boolean default false,
+  add column if not exists theme_color text default '#1f5149',
+  add column if not exists curfew_enabled boolean default false,
+  add column if not exists curfew_start text default '22:00',
+  add column if not exists curfew_end text default '05:00',
+  add column if not exists allow_visitors boolean default true,
+  add column if not exists quiet_hours_enabled boolean default false,
+  add column if not exists quiet_hours_start text default '22:00',
+  add column if not exists quiet_hours_end text default '07:00',
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz;
+
 insert into public.system_settings (platform_name)
 select 'BoardingHow'
 where not exists (select 1 from public.system_settings);
@@ -61,6 +79,15 @@ create table if not exists public.messages (
   related_maintenance_request_id uuid,
   created_at timestamptz not null default now()
 );
+
+alter table if exists public.messages
+  add column if not exists id uuid default gen_random_uuid(),
+  add column if not exists sender_id uuid,
+  add column if not exists receiver_id uuid,
+  add column if not exists content text,
+  add column if not exists is_read boolean default false,
+  add column if not exists related_maintenance_request_id uuid,
+  add column if not exists created_at timestamptz default now();
 
 create index if not exists messages_sender_id_idx on public.messages(sender_id);
 create index if not exists messages_receiver_id_idx on public.messages(receiver_id);
@@ -77,6 +104,16 @@ create table if not exists public.rent_bills (
   created_at timestamptz not null default now()
 );
 
+alter table if exists public.rent_bills
+  add column if not exists id uuid default gen_random_uuid(),
+  add column if not exists tenant_id uuid,
+  add column if not exists amount numeric default 0,
+  add column if not exists due_date date,
+  add column if not exists billing_period text,
+  add column if not exists status text default 'pending',
+  add column if not exists paid_at timestamptz,
+  add column if not exists created_at timestamptz default now();
+
 create index if not exists rent_bills_tenant_id_idx on public.rent_bills(tenant_id);
 create index if not exists rent_bills_due_date_idx on public.rent_bills(due_date);
 
@@ -91,6 +128,17 @@ create table if not exists public.payments (
   paid_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table if exists public.payments
+  add column if not exists id uuid default gen_random_uuid(),
+  add column if not exists tenant_id uuid,
+  add column if not exists rent_bill_id uuid,
+  add column if not exists amount numeric default 0,
+  add column if not exists description text,
+  add column if not exists payment_method text,
+  add column if not exists receipt_number text,
+  add column if not exists paid_at timestamptz,
+  add column if not exists created_at timestamptz default now();
 
 create index if not exists payments_tenant_id_idx on public.payments(tenant_id);
 create index if not exists payments_rent_bill_id_idx on public.payments(rent_bill_id);
@@ -108,6 +156,17 @@ create table if not exists public.notifications (
   created_at timestamptz not null default now()
 );
 
+alter table if exists public.notifications
+  add column if not exists id uuid default gen_random_uuid(),
+  add column if not exists profile_id uuid,
+  add column if not exists title text,
+  add column if not exists body text,
+  add column if not exists category text,
+  add column if not exists priority text default 'normal',
+  add column if not exists related_id uuid,
+  add column if not exists is_read boolean default false,
+  add column if not exists created_at timestamptz default now();
+
 create index if not exists notifications_profile_id_idx on public.notifications(profile_id);
 create index if not exists notifications_created_at_idx on public.notifications(created_at);
 
@@ -119,6 +178,13 @@ create table if not exists public.maintenance_updates (
   created_at timestamptz not null default now()
 );
 
+alter table if exists public.maintenance_updates
+  add column if not exists id uuid default gen_random_uuid(),
+  add column if not exists maintenance_request_id uuid,
+  add column if not exists author_id uuid,
+  add column if not exists message text,
+  add column if not exists created_at timestamptz default now();
+
 create index if not exists maintenance_updates_request_id_idx on public.maintenance_updates(maintenance_request_id);
 create index if not exists maintenance_updates_created_at_idx on public.maintenance_updates(created_at);
 
@@ -129,6 +195,13 @@ create table if not exists public.push_subscriptions (
   subscription jsonb not null,
   created_at timestamptz not null default now()
 );
+
+alter table if exists public.push_subscriptions
+  add column if not exists id uuid default gen_random_uuid(),
+  add column if not exists profile_id uuid,
+  add column if not exists endpoint text,
+  add column if not exists subscription jsonb,
+  add column if not exists created_at timestamptz default now();
 
 create unique index if not exists push_subscriptions_endpoint_idx on public.push_subscriptions(endpoint);
 create index if not exists push_subscriptions_profile_id_idx on public.push_subscriptions(profile_id);
