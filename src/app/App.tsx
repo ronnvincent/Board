@@ -38,9 +38,9 @@ function AppRouter() {
     }
   }, [isAuthenticated, page]);
 
-  // Maintenance mode guard
-  if (settings.maintenance_mode && user?.role !== "administrator") {
-    // If not admin, they only see this screen.
+  // Maintenance mode guard. Keep the login page reachable so administrators
+  // can sign in and disable maintenance mode if needed.
+  if (settings.maintenance_mode && page !== "login" && user?.role !== "administrator") {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
         <div className="grid size-20 place-items-center rounded-3xl bg-primary/10 text-primary mb-6">
@@ -50,8 +50,11 @@ function AppRouter() {
         <p className="text-muted-foreground max-w-md mb-8">
           {settings.platform_name} is currently undergoing scheduled maintenance. Please check back later!
         </p>
-        <button onClick={() => window.location.reload()} className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition">
-          Refresh Page
+        <button
+          onClick={() => (isAuthenticated ? window.location.reload() : setPage("login"))}
+          className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition"
+        >
+          {isAuthenticated ? "Refresh Page" : "Administrator Sign In"}
         </button>
       </div>
     );

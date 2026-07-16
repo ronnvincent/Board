@@ -119,11 +119,11 @@ function RoomCard({ room, group, onApply, tenants }: { room: any, group: any, on
   const [imgIndex, setImgIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
 
-  const features = room.features || ["AC", "Wi-Fi"];
+  const features: string[] = Array.isArray(room.features) ? room.features : ["AC", "Wi-Fi"];
   const hasAC = features.includes("AC") || features.includes("Air Conditioning");
   const hasWifi = features.includes("Wi-Fi") || features.includes("Internet");
   const price = room.price || 5000;
-  const images = room.images || [];
+  const images: string[] = Array.isArray(room.images) ? room.images : [];
   const maxOccupants = room.max_occupants || 1;
   const currentOccupants = tenants.filter((t: any) => t.room_id === room.id).length;
   const isFull = currentOccupants >= maxOccupants;

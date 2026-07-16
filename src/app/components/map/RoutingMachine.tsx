@@ -30,7 +30,7 @@ export default function RoutingMachine({
         missingRouteTolerance: 10
       },
       createMarker: () => null
-    }).addTo(map);
+    } as L.Routing.RoutingControlOptions & { createMarker: () => null }).addTo(map);
 
     const container = routingControl.getContainer();
     if (container) {

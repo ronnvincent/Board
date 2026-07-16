@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useAuth } from "../../context/AuthContext";
 import type { UserRole } from "../../types/auth";
 import { Loader2 } from "lucide-react";
@@ -16,6 +16,12 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
 
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user)) {
+      onRedirectToLogin();
+    }
+  }, [isLoading, isAuthenticated, user, onRedirectToLogin]);
+
   // Show loading spinner while auth state is resolving
   if (isLoading) {
     return (
@@ -30,8 +36,6 @@ export default function ProtectedRoute({
 
   // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
-    // Use setTimeout to avoid calling setState during render
-    setTimeout(() => onRedirectToLogin(), 0);
     return null;
   }
 

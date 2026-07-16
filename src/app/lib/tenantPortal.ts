@@ -64,8 +64,30 @@ export function normalizeMaintenanceStatus(status: string): string {
   return (status || "pending").toLowerCase().replace(/\s+/g, "_");
 }
 
-/** Register a push subscription (stub — real implementation needs a service worker) */
-export async function registerPushSubscription(_profileId: string): Promise<void> {
-  // Push notification registration would go here
-  console.info("Push subscription registration is a stub in this environment.");
+export type PushRegistrationResult =
+  | { ok: true; endpoint: string; subscription: Record<string, unknown> }
+  | { ok: false; reason: string };
+
+/** Register a push subscription. Requires a service worker + Push API support. */
+export async function registerPushSubscription(_profileId: string): Promise<PushRegistrationResult> {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return { ok: false, reason: "Browser push notifications are not supported in this environment." };
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    return { ok: false, reason: "Notification permission was not granted." };
+  }
+
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return {
+      ok: false,
+      reason: "Push notifications need a service worker and Push API support before they can be enabled.",
+    };
+  }
+
+  return {
+    ok: false,
+    reason: "Push permission is granted, but no service worker push subscription is configured yet.",
+  };
 }

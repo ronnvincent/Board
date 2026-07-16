@@ -1,29 +1,36 @@
-import fetch from 'node-fetch';
+const requireEnv = (name: string): string => {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Set ${name} before running this script.`);
+  }
+  return value;
+};
+
+const supabaseUrl = requireEnv("VITE_SUPABASE_URL");
+const supabaseKey = requireEnv("VITE_SUPABASE_ANON_KEY");
 
 async function run() {
-  const base = "https://mfypampschkhqnjrzsov.supabase.co/rest/v1";
-  const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1meXBhbXBzY2hraHFuanJ6c292Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMjczMjYsImV4cCI6MjA5OTYwMzMyNn0.6RTUxJbpBWeJOgq3RdbnPMakwTulL1ksVDnHs8usNsU";
+  const base = `${supabaseUrl.replace(/\/$/, "")}/rest/v1`;
   const headers = {
-    "apikey": key,
-    "Authorization": `Bearer ${key}`,
-    "Accept": "application/json"
+    apikey: supabaseKey,
+    Authorization: `Bearer ${supabaseKey}`,
+    Accept: "application/json",
   };
-  
-  // Get one row from maintenance_requests to see actual columns and values
+
   const res = await fetch(`${base}/maintenance_requests?limit=5&order=created_at.desc`, { headers });
   const data = await res.json();
   console.log("maintenance_requests sample rows:");
   console.log(JSON.stringify(data, null, 2));
-  
-  // Also try the OpenAPI schema with trailing slash
+
   const schemaRes = await fetch(`${base}/`, {
-    headers: { ...headers, "Accept": "application/openapi+json" }
+    headers: { ...headers, Accept: "application/openapi+json" },
   });
   const schemaData = await schemaRes.json();
   const defs = schemaData.definitions;
-  if (defs && defs.maintenance_requests) {
+  if (defs?.maintenance_requests) {
     console.log("\n\nOpenAPI maintenance_requests definition:");
     console.log(JSON.stringify(defs.maintenance_requests, null, 2));
   }
 }
+
 run();

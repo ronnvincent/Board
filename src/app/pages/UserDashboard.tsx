@@ -118,7 +118,7 @@ export default function UserDashboard() {
           {activeNav === "community" && (
             <CommunitySection 
               profileId={user?.id} 
-              houseId={myRoom?.house_id} 
+              houseId={myRoom?.house_id ?? undefined} 
               onMessageSeller={(sellerId) => {
                 setActiveChatUserId(sellerId);
                 setActiveNav("messages");
@@ -360,19 +360,19 @@ function OverviewSection({ userName, tenant, room, onNavigate }: { userName: str
               <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Gate Curfew</p>
                 <p className="text-sm font-medium">
-                  {settings?.curfewEnabled ? `🌙 ${settings.curfewStart} - ${settings.curfewEnd}` : "✅ No Curfew"}
+                  {settings?.curfew_enabled ? `🌙 ${settings.curfew_start} - ${settings.curfew_end}` : "✅ No Curfew"}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Quiet Hours</p>
                 <p className="text-sm font-medium">
-                  {settings?.quietHoursEnabled ? `🤫 ${settings.quietHoursStart} - ${settings.quietHoursEnd}` : "✅ Not Enforced"}
+                  {settings?.quiet_hours_enabled ? `🤫 ${settings.quiet_hours_start} - ${settings.quiet_hours_end}` : "✅ Not Enforced"}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-muted/30 border border-border/50 sm:col-span-2">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Visitor Policy</p>
                 <p className="text-sm font-medium">
-                  {settings?.allowVisitors ? "✅ Visitors are allowed (subject to gate pass)" : "🚫 No visitors allowed currently"}
+                  {settings?.allow_visitors ? "✅ Visitors are allowed (subject to gate pass)" : "🚫 No visitors allowed currently"}
                 </p>
               </div>
             </div>
@@ -1340,7 +1340,13 @@ function CommunitySection({ profileId, houseId, onMessageSeller }: { profileId?:
               <div className="flex items-center justify-between xs:flex-col xs:items-end shrink-0 pl-12 xs:pl-0">
                 <p className="font-bold text-primary text-sm">₱{item.price.toLocaleString()}</p>
                 {seller?.id !== profileId && (
-                  <button onClick={() => onMessageSeller(seller?.id)} className="text-xs font-bold text-emerald-600 mt-0.5 hover:underline">Message</button>
+                  <button
+                    onClick={() => seller?.id && onMessageSeller(seller.id)}
+                    disabled={!seller?.id}
+                    className="text-xs font-bold text-emerald-600 mt-0.5 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Message
+                  </button>
                 )}
               </div>
             </div>
@@ -1861,7 +1867,7 @@ function ProfileSection({ user, tenant, room }: { user: any, tenant: any, room: 
               {room ? (
                 <div className="hidden sm:block">
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Lease</p>
-                  <p className="text-sm font-bold mt-0.5">Room {room.room_number}</p>
+                  <p className="text-sm font-bold mt-0.5">Room {room.number}</p>
                 </div>
               ) : <div />}
               
@@ -2464,7 +2470,7 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
                       <p className="text-[10px] uppercase text-muted-foreground font-['DM_Mono']">{admin.role}</p>
                       {lastParsed && (
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {lastMsg.sender_id === currentUserId ? "You: " : ""}{lastParsed.text}
+                          {lastMsg?.sender_id === currentUserId ? "You: " : ""}{lastParsed.text}
                         </p>
                       )}
                     </div>

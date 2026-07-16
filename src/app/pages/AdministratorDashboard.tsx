@@ -1785,7 +1785,7 @@ function SecurityGateSection() {
             <div className="w-full max-w-sm aspect-square relative rounded-2xl overflow-hidden bg-black mb-4">
               <Scanner 
                 onScan={handleCameraScan} 
-                components={{ audio: false, onOff: true, torch: true, zoom: false, finder: true }}
+                components={{ onOff: true, torch: true, zoom: false, finder: true }}
               />
               <button 
                 onClick={() => setCameraActive(false)}
@@ -1930,9 +1930,7 @@ function SecurityGateSection() {
                     const room = rooms.find((r) => r.id === tenantRecord?.room_id);
                     const house = houses.find((h) => h.id === room?.house_id);
 
-                    const tenantName = tenantProfile 
-                      ? `${tenantProfile.first_name} ${tenantProfile.last_name}`
-                      : "Unknown Tenant";
+                    const tenantName = tenantProfile?.full_name || "Unknown Tenant";
                     
                     return (
                       <tr key={v.id} className="hover:bg-muted/20 transition">
@@ -1948,7 +1946,7 @@ function SecurityGateSection() {
                         <td className="px-6 py-4 text-muted-foreground">
                           {room ? (
                             <span className="inline-flex items-center gap-1">
-                              <MapPin size={14} /> Room {room.room_number}, {house?.name || "Unknown House"}
+                              <MapPin size={14} /> Room {room.number}, {house?.name || "Unknown House"}
                             </span>
                           ) : (
                             "No Room Assigned"
@@ -2409,7 +2407,7 @@ function SumbunganAdminSection() {
                       </p>
                       {lastParsed && (
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {lastMsg.sender_id === user?.id ? "You: " : ""}{lastParsed.text}
+                          {lastMsg?.sender_id === user?.id ? "You: " : ""}{lastParsed.text}
                         </p>
                       )}
                     </div>
