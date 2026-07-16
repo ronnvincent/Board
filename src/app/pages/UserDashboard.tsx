@@ -527,7 +527,7 @@ function OverviewSection({ userName, tenant, room, onNavigate }: { userName: str
                 <h3 className="font-['Libre_Baskerville'] text-xl font-bold mb-2">Leave Room</h3>
                 <p className="mb-2 text-sm text-muted-foreground">Please provide a reason. Your request will be sent to the administration and your room assignment will be released.</p>
               </div>
-              <div className="flex-1 overflow-y-auto px-6">
+              <div className="flex-1 overflow-y-auto px-6 min-h-0">
                 <textarea
                   value={leaveReason}
                   onChange={(e) => setLeaveReason(e.target.value)}
@@ -1544,7 +1544,7 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-0">
+              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-0 min-h-0">
                 <div className="text-center mb-6">
                   <h3 className="font-['Libre_Baskerville'] text-2xl font-bold mb-1">Gate Pass</h3>
                   <p className="text-sm text-muted-foreground">Show this at the entrance</p>
@@ -2072,7 +2072,7 @@ function MessagesSection({
         <div className="p-4 border-b border-border">
           <h3 className="font-['Libre_Baskerville'] font-bold text-lg tracking-tight">Conversations</h3>
         </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
           {partners.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground p-4">No conversations yet.</p>
           ) : (
@@ -2158,7 +2158,7 @@ function MessagesSection({
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 flex flex-col min-h-0">
               {maintenanceContextId && (
                 <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 text-sm">
                   <div className="flex items-start justify-between gap-3">
@@ -2451,7 +2451,7 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
               Administrators ({adminProfiles.length})
             </p>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {sortedAdmins.length === 0 ? (
               <div className="p-6 text-center text-sm text-muted-foreground">No administrators available</div>
             ) : (
@@ -2541,7 +2541,7 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
               {conversation.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center h-full text-center text-muted-foreground py-12">
                   <MessageSquareText size={40} className="mb-3 opacity-15" />

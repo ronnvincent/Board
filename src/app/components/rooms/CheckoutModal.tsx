@@ -188,8 +188,8 @@ export default function CheckoutModal({
                 </div>
               )}
 
-              <form onSubmit={handleApply} className="flex flex-col flex-1 overflow-hidden">
-                <div className="flex-1 overflow-y-auto space-y-6 pr-2 pb-2">
+              <form onSubmit={handleApply} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                <div className="flex-1 overflow-y-auto space-y-6 pr-2 pb-2 min-h-0">
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"

@@ -45,7 +45,7 @@ export default function MockPaymentGateway({ amount, description, onSuccess, onC
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col">
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col min-h-0">
           <AnimatePresence mode="wait">
             {step === "select" && (
               <motion.div

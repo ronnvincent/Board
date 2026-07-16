@@ -234,7 +234,7 @@ function OverviewSection() {
                 )}
 
                 {/* Tenants list */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto min-h-0">
                   {roomTenants.length === 0 ? (
                     <div className="px-5 py-10 text-center">
                       <BedDouble size={28} className="mx-auto mb-2 text-muted-foreground/30" />
@@ -383,7 +383,7 @@ function AdmissionsSection() {
               </div>
               <button type="button" onClick={() => setSelectedTenantId(null)} className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"><X size={16} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 pb-2">
+            <div className="flex-1 overflow-y-auto px-6 pb-2 min-h-0">
               <div className="rounded-xl border border-border bg-background/70 p-4">
                 <p className="text-sm font-semibold">{tenants.find((tenant: any) => tenant.id === selectedTenantId)?.name}</p>
                 <p className="mt-2 text-sm text-muted-foreground">This resident is ready for admission. Assign a room and approve them from here.</p>
@@ -529,7 +529,7 @@ function RoomsSection() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 space-y-4 min-h-0">
               <div>
                 <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Room Number</label>
                 <input
@@ -870,7 +870,7 @@ function StaffSection() {
               </div>
               <button type="button" onClick={() => setIsStaffModalOpen(false)} className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"><X size={16} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-4 min-h-0">
               <div>
                 <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Name</label>
                 <input type="text" value={staffName} onChange={(e) => setStaffName(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
@@ -988,7 +988,7 @@ function MaintenanceSection() {
               </div>
               <button type="button" onClick={() => setIsRequestModalOpen(false)} className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"><X size={16} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-4 min-h-0">
               <div>
                 <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Issue</label>
                 <textarea value={requestIssue} onChange={(e) => setRequestIssue(e.target.value)} rows={4} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />

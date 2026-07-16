@@ -81,7 +81,7 @@ export function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; 
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 pt-4">
+        <div className="flex-1 overflow-y-auto p-4 pt-4 min-h-0">
           <div className="mb-3 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
             {locationError ? (
               <p>{locationError}</p>
