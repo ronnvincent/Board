@@ -306,18 +306,9 @@ export default function DashboardLayout({
             )}
           </AnimatePresence>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeNav}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.24, ease: "easeOut" }}
-              className="min-h-full"
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <div key={activeNav} className="min-h-full animate-in fade-in duration-300">
+            {children}
+          </div>
         </main>
 
         {/* ── Mobile bottom tabs ── */}
