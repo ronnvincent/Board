@@ -1549,6 +1549,7 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
                   <h3 className="font-['Libre_Baskerville'] text-2xl font-bold mb-1">Gate Pass</h3>
                   <p className="text-sm text-muted-foreground">Show this at the entrance</p>
                 </div>
+              </div>
 
               <div className="bg-card border border-border rounded-2xl p-6 flex flex-col items-center justify-center mb-6">
                 <div className="bg-white p-4 rounded-xl shadow-inner mb-4">
