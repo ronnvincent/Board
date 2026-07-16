@@ -2114,7 +2114,7 @@ function MessagesSection({
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {lastMsg
-                        ? lastMsg.content.startsWith("data:image/") ? "📷 Image" : lastMsg.content.slice(0, 35) + (lastMsg.content.length > 35 ? "…" : "")
+                        ? lastMsg.content?.startsWith("data:image/") ? "📷 Image" : lastMsg.content?.slice(0, 35) + ((lastMsg.content?.length || 0) > 35 ? "…" : "")
                         : pRoom ? `Room ${pRoom.number}` : "Start chatting"
                       }
                     </p>
@@ -2235,10 +2235,10 @@ function MessagesSection({
                           )}
                         </div>
                         <div className={`rounded-2xl px-5 py-3 text-sm select-none ${isMe ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted border border-border rounded-bl-sm"}`}>
-                          {msg.content.startsWith("data:image/") ? (
+                          {msg.content?.startsWith("data:image/") ? (
                             <img src={msg.content} alt="Attachment" className="rounded-xl max-h-64 object-cover" />
                           ) : (
-                            <p>{msg.content}</p>
+                            <p>{msg.content || ""}</p>
                           )}
                           <p className={`text-[10px] mt-1 text-right flex items-center gap-1 ${isMe ? "justify-end text-primary-foreground/70" : "justify-start text-muted-foreground"}`}>
                             {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -2395,7 +2395,8 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
   };
 
   // Extract category from message content
-  const parseMessage = (content: string) => {
+  const parseMessage = (content: string | null | undefined) => {
+    if (!content) return { category: null, text: "" };
     const match = content.match(/^\[([A-Z]+)\]\s*/);
     if (match) {
       return { category: match[1].toLowerCase(), text: content.replace(match[0], "") };
@@ -2560,7 +2561,7 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
               ) : (
                 conversation.map((msg: any) => {
                   const isMe = msg.sender_id === currentUserId;
-                  const parsed = parseMessage(msg.content);
+                  const parsed = parseMessage(msg.content || "");
                   const catInfo = CONCERN_CATEGORIES.find((c) => c.id === parsed.category);
                   const time = new Date(msg.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 

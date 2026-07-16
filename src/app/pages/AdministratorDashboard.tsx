@@ -2286,7 +2286,8 @@ function SumbunganAdminSection() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Parse message content to extract category
-  const parseMessage = (content: string) => {
+  const parseMessage = (content: string | null | undefined) => {
+    if (!content) return { category: null, text: "" };
     const match = content.match(/^\[([A-Z]+)\]\s*/);
     if (match) {
       return { category: match[1].toLowerCase(), text: content.replace(match[0], "") };
@@ -2463,7 +2464,7 @@ function SumbunganAdminSection() {
               ) : (
                 conversation.map((msg: any) => {
                   const isMe = msg.sender_id === user?.id;
-                  const parsed = parseMessage(msg.content);
+                  const parsed = parseMessage(msg.content || "");
                   const catInfo = CONCERN_CATEGORIES.find((c) => c.id === parsed.category);
                   const time = new Date(msg.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
