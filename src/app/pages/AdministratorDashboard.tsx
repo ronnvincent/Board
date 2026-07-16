@@ -519,7 +519,7 @@ function AdminsSection() {
 
       {adminToDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <h3 className="text-lg font-bold">Revoke Admin Access</h3>
             <p className="mt-2 text-sm text-muted-foreground">This will permanently delete the selected admin account.</p>
             <div className="mt-6 flex justify-end gap-2">
@@ -570,7 +570,7 @@ function AdminModal({ isOpen, onClose, admin, houses }: { isOpen: boolean, onClo
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
+        className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl"
       >
         <h3 className="font-bold text-lg mb-4">{admin ? "Edit Admin" : "Create Admin"}</h3>
         
@@ -751,7 +751,7 @@ function HousesSection() {
 
       {houseToDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <h3 className="text-lg font-bold">Delete Boarding House</h3>
             <p className="mt-2 text-sm text-muted-foreground">This action cannot be undone and will remove the selected property.</p>
             <div className="mt-6 flex justify-end gap-2">
@@ -1330,7 +1330,7 @@ function UsersSection() {
 
       {userToDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <h3 className="text-lg font-bold">Delete User</h3>
             <p className="mt-2 text-sm text-muted-foreground">This will permanently delete the selected account from the platform.</p>
             <div className="mt-6 flex justify-end gap-2">

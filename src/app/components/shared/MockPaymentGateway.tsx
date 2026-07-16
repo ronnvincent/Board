@@ -30,7 +30,7 @@ export default function MockPaymentGateway({ amount, description, onSuccess, onC
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
+        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-border bg-card shadow-2xl"
       >
         <div className="relative border-b border-border bg-muted/30 px-6 py-5">
           <button 

@@ -521,7 +521,7 @@ function OverviewSection({ userName, tenant, room, onNavigate }: { userName: str
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl"
+              className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl"
             >
               <h3 className="font-['Libre_Baskerville'] text-xl font-bold mb-2">Leave Room</h3>
               <p className="mb-4 text-sm text-muted-foreground">Please provide a reason. Your request will be sent to the administration and your room assignment will be released.</p>
@@ -1529,7 +1529,7 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm rounded-3xl bg-background p-6 shadow-2xl overflow-hidden relative"
+              className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl bg-background p-6 shadow-2xl relative"
             >
               <button 
                 onClick={() => setSelectedPass(null)}

@@ -375,7 +375,7 @@ function AdmissionsSection() {
 
       {selectedTenantId && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold">Admission Review</h3>
@@ -860,7 +860,7 @@ function StaffSection() {
 
       {isStaffModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">Create Staff Member</h3>
@@ -978,7 +978,7 @@ function MaintenanceSection() {
       
       {isRequestModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">New Maintenance Request</h3>

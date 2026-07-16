@@ -166,8 +166,8 @@ export default function CheckoutModal({
               </div>
             </div>
 
-            {/* Right side: Payment Details */}
-            <div className="p-6 md:w-3/5 relative">
+             {/* Right side: Payment Details */}
+             <div className="p-6 md:w-3/5 relative flex flex-col max-h-[85vh] overflow-hidden">
               <button
                 type="button"
                 onClick={handleClose}
@@ -188,7 +188,7 @@ export default function CheckoutModal({
                 </div>
               )}
 
-              <form onSubmit={handleApply} className="space-y-6">
+              <form onSubmit={handleApply} className="space-y-6 overflow-y-auto flex-1">
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
