@@ -519,10 +519,12 @@ function AdminsSection() {
 
       {adminToDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <h3 className="text-lg font-bold">Revoke Admin Access</h3>
-            <p className="mt-2 text-sm text-muted-foreground">This will permanently delete the selected admin account.</p>
-            <div className="mt-6 flex justify-end gap-2">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="shrink-0 p-6 pb-4">
+              <h3 className="text-lg font-bold">Revoke Admin Access</h3>
+              <p className="mt-2 text-sm text-muted-foreground">This will permanently delete the selected admin account.</p>
+            </div>
+            <div className="shrink-0 p-6 pt-2 flex justify-end gap-2">
               <button type="button" onClick={() => setAdminToDelete(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
               <button type="button" onClick={confirmDeleteAdmin} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">Delete</button>
             </div>
@@ -570,11 +572,13 @@ function AdminModal({ isOpen, onClose, admin, houses }: { isOpen: boolean, onClo
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl"
+        className="w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
       >
-        <h3 className="font-bold text-lg mb-4">{admin ? "Edit Admin" : "Create Admin"}</h3>
+        <div className="shrink-0 p-6 pb-4">
+          <h3 className="font-bold text-lg">{admin ? "Edit Admin" : "Create Admin"}</h3>
+        </div>
         
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 space-y-4">
           <div>
             <label className="text-xs font-bold text-muted-foreground">Full Name</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
@@ -592,7 +596,7 @@ function AdminModal({ isOpen, onClose, admin, houses }: { isOpen: boolean, onClo
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="shrink-0 p-6 pt-4 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-bold text-muted-foreground hover:bg-muted transition">Cancel</button>
           <button onClick={handleSave} disabled={saving || !name || !email} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50">
             {saving ? "Saving..." : "Save Admin"}
@@ -751,10 +755,12 @@ function HousesSection() {
 
       {houseToDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <h3 className="text-lg font-bold">Delete Boarding House</h3>
-            <p className="mt-2 text-sm text-muted-foreground">This action cannot be undone and will remove the selected property.</p>
-            <div className="mt-6 flex justify-end gap-2">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="shrink-0 p-6 pb-4">
+              <h3 className="text-lg font-bold">Delete House</h3>
+              <p className="mt-2 text-sm text-muted-foreground">This will permanently delete the house and all its rooms. This action cannot be undone.</p>
+            </div>
+            <div className="shrink-0 p-6 pt-2 flex justify-end gap-2">
               <button type="button" onClick={() => setHouseToDelete(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
               <button type="button" onClick={confirmDeleteHouse} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">Delete</button>
             </div>
@@ -940,12 +946,14 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl"
+        className="w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
       >
-        <h3 className="font-bold text-lg mb-1">{house ? "Edit Boarding House" : "Create Boarding House"}</h3>
-        <p className="text-sm text-muted-foreground mb-5">Configure property details and room pricing.</p>
+        <div className="shrink-0 p-6 pb-4">
+          <h3 className="font-bold text-lg mb-1">{house ? "Edit Boarding House" : "Create Boarding House"}</h3>
+          <p className="text-sm text-muted-foreground">Configure property details and room pricing.</p>
+        </div>
         
-        <div className="space-y-5">
+        <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-5">
           {/* Basic Info */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -1138,7 +1146,7 @@ function HouseModal({ isOpen, onClose, house }: { isOpen: boolean, onClose: () =
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="shrink-0 p-6 pt-4 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-bold text-muted-foreground hover:bg-muted transition">Cancel</button>
           <button onClick={handleSave} disabled={saving || !canSave} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-[#173f39] transition disabled:opacity-50">
             {saving ? "Saving..." : "Save Property"}
@@ -1330,10 +1338,12 @@ function UsersSection() {
 
       {userToDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <h3 className="text-lg font-bold">Delete User</h3>
-            <p className="mt-2 text-sm text-muted-foreground">This will permanently delete the selected account from the platform.</p>
-            <div className="mt-6 flex justify-end gap-2">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="shrink-0 p-6 pb-4">
+              <h3 className="text-lg font-bold">Delete User</h3>
+              <p className="mt-2 text-sm text-muted-foreground">This will permanently delete the selected account from the platform.</p>
+            </div>
+            <div className="shrink-0 p-6 pt-2 flex justify-end gap-2">
               <button type="button" onClick={() => setUserToDelete(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
               <button type="button" onClick={confirmDeleteUser} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">Delete</button>
             </div>

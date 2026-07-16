@@ -375,19 +375,21 @@ function AdmissionsSection() {
 
       {selectedTenantId && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="shrink-0 p-6 pb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold">Admission Review</h3>
                 <p className="text-sm text-muted-foreground">Confirm the room and house details before approving.</p>
               </div>
               <button type="button" onClick={() => setSelectedTenantId(null)} className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"><X size={16} /></button>
             </div>
-            <div className="mt-4 rounded-xl border border-border bg-background/70 p-4">
-              <p className="text-sm font-semibold">{tenants.find((tenant: any) => tenant.id === selectedTenantId)?.name}</p>
-              <p className="mt-2 text-sm text-muted-foreground">This resident is ready for admission. Assign a room and approve them from here.</p>
+            <div className="flex-1 overflow-y-auto px-6 pb-2">
+              <div className="rounded-xl border border-border bg-background/70 p-4">
+                <p className="text-sm font-semibold">{tenants.find((tenant: any) => tenant.id === selectedTenantId)?.name}</p>
+                <p className="mt-2 text-sm text-muted-foreground">This resident is ready for admission. Assign a room and approve them from here.</p>
+              </div>
             </div>
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="shrink-0 p-6 pt-4 flex justify-end gap-2">
               <button onClick={() => setSelectedTenantId(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Close</button>
               <button onClick={() => handleApprove(selectedTenantId)} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-[#173f39]">Approve Admission</button>
             </div>
@@ -511,9 +513,9 @@ function RoomsSection() {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl"
+            className="w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
           >
-            <div className="mb-5 flex items-center justify-between">
+            <div className="shrink-0 p-6 pb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">{modalData.id ? "Edit Room" : "Create Room"}</h3>
                 <p className="text-sm text-muted-foreground">{modalData.id ? "Update room details and images." : "Add a new room with default details."}</p>
@@ -527,7 +529,7 @@ function RoomsSection() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 space-y-4">
               <div>
                 <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Room Number</label>
                 <input
@@ -573,7 +575,7 @@ function RoomsSection() {
                 />
               </div>
               
-              <div>
+              <div className="pb-4">
                 <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground mb-2 block">Room Images</label>
                 <div className="grid grid-cols-4 gap-2 mb-2">
                   {roomImages.map((img, i) => (
@@ -604,7 +606,7 @@ function RoomsSection() {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="shrink-0 p-6 pt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setModalData(null)}
@@ -860,15 +862,15 @@ function StaffSection() {
 
       {isStaffModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="shrink-0 p-6 pb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">Create Staff Member</h3>
                 <p className="text-sm text-muted-foreground">Add a staff profile with a role and status.</p>
               </div>
               <button type="button" onClick={() => setIsStaffModalOpen(false)} className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"><X size={16} /></button>
             </div>
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-4">
               <div>
                 <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Name</label>
                 <input type="text" value={staffName} onChange={(e) => setStaffName(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
@@ -878,7 +880,7 @@ function StaffSection() {
                 <input type="text" value={staffRole} onChange={(e) => setStaffRole(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
               </div>
             </div>
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="shrink-0 p-6 pt-4 flex justify-end gap-2">
               <button type="button" onClick={() => setIsStaffModalOpen(false)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
               <button type="button" onClick={handleAddStaff} disabled={adding || !staffName.trim()} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-50">{adding ? "Saving..." : "Save Staff"}</button>
             </div>
@@ -978,15 +980,15 @@ function MaintenanceSection() {
       
       {isRequestModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="shrink-0 p-6 pb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">New Maintenance Request</h3>
                 <p className="text-sm text-muted-foreground">Capture the issue and associate it with a room.</p>
               </div>
               <button type="button" onClick={() => setIsRequestModalOpen(false)} className="rounded-full border border-border bg-background p-2 text-muted-foreground transition hover:bg-muted"><X size={16} /></button>
             </div>
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-4">
               <div>
                 <label className="text-xs font-bold uppercase tracking-[.15em] text-muted-foreground">Issue</label>
                 <textarea value={requestIssue} onChange={(e) => setRequestIssue(e.target.value)} rows={4} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
@@ -999,7 +1001,7 @@ function MaintenanceSection() {
                 </select>
               </div>
             </div>
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="shrink-0 p-6 pt-4 flex justify-end gap-2">
               <button type="button" onClick={() => setIsRequestModalOpen(false)} className="rounded-xl px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-muted">Cancel</button>
               <button type="button" onClick={handleAddRequest} disabled={adding || !requestIssue.trim()} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-50">{adding ? "Saving..." : "Save Request"}</button>
             </div>

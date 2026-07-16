@@ -64,9 +64,9 @@ export function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; 
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-3xl rounded-2xl border border-border bg-card p-4 shadow-2xl"
+        className="w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl relative"
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="shrink-0 p-4 pb-0 flex items-start justify-between gap-3 relative z-10">
           <div>
             <h3 className="font-['Libre_Baskerville'] text-xl font-bold">{house.name}</h3>
             <p className="text-sm text-muted-foreground">Route from your current location to this boarding house.</p>
@@ -81,35 +81,37 @@ export function LocationMapModal({ isOpen, onClose, house }: { isOpen: boolean; 
           </button>
         </div>
 
-        <div className="mb-3 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-          {locationError ? (
-            <p>{locationError}</p>
-          ) : userPosition ? (
-            <p>Your current location is being used to calculate the route.</p>
-          ) : (
-            <p>Requesting your location to draw the route…</p>
-          )}
-          {!hasCoordinates && (
-            <p className="mt-1 text-xs text-amber-600">This house does not have a pinned location yet. Ask an administrator to set one.</p>
-          )}
-        </div>
-
-        <div className="h-[420px] w-full overflow-hidden rounded-xl border border-border">
-          <MapContainer key={`${house.id}-${targetPosition[0]}-${targetPosition[1]}`} center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            />
-            {userPosition && (
-              <Marker position={userPosition}>
-                <Popup>Your current location</Popup>
-              </Marker>
+        <div className="flex-1 overflow-y-auto p-4 pt-4">
+          <div className="mb-3 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+            {locationError ? (
+              <p>{locationError}</p>
+            ) : userPosition ? (
+              <p>Your current location is being used to calculate the route.</p>
+            ) : (
+              <p>Requesting your location to draw the route…</p>
             )}
-            <Marker position={targetPosition}>
-              <Popup>{house.name}</Popup>
-            </Marker>
-            {userPosition && <RoutingMachine userPos={userPosition} targetPos={targetPosition} />}
-          </MapContainer>
+            {!hasCoordinates && (
+              <p className="mt-1 text-xs text-amber-600">This house does not have a pinned location yet. Ask an administrator to set one.</p>
+            )}
+          </div>
+
+          <div className="h-[420px] w-full overflow-hidden rounded-xl border border-border">
+            <MapContainer key={`${house.id}-${targetPosition[0]}-${targetPosition[1]}`} center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              />
+              {userPosition && (
+                <Marker position={userPosition}>
+                  <Popup>Your current location</Popup>
+                </Marker>
+              )}
+              <Marker position={targetPosition}>
+                <Popup>{house.name}</Popup>
+              </Marker>
+              {userPosition && <RoutingMachine userPos={userPosition} targetPos={targetPosition} />}
+            </MapContainer>
+          </div>
         </div>
       </motion.div>
     </div>

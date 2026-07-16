@@ -188,118 +188,122 @@ export default function CheckoutModal({
                 </div>
               )}
 
-              <form onSubmit={handleApply} className="space-y-6 overflow-y-auto flex-1">
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("card")}
-                    className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold transition ${
-                      paymentMethod === "card"
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-border bg-card text-muted-foreground hover:bg-muted/50"
-                    }`}
-                  >
-                    <CreditCard size={16} /> Credit Card
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("gcash")}
-                    className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold transition ${
-                      paymentMethod === "gcash"
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-border bg-card text-muted-foreground hover:bg-muted/50"
-                    }`}
-                  >
-                    <Smartphone size={16} /> GCash
-                  </button>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  {paymentMethod === "card" ? (
-                    <motion.div
-                      key="card"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="space-y-4"
+              <form onSubmit={handleApply} className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto space-y-6 pr-2 pb-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("card")}
+                      className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold transition ${
+                        paymentMethod === "card"
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:bg-muted/50"
+                      }`}
                     >
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Card Number</label>
-                        <input 
-                          type="text" 
-                          placeholder="0000 0000 0000 0000" 
-                          required
-                          value={cardNumber}
-                          onChange={e => setCardNumber(e.target.value)}
-                          className="w-full mt-1.5 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" 
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <CreditCard size={16} /> Credit Card
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("gcash")}
+                      className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold transition ${
+                        paymentMethod === "gcash"
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-border bg-card text-muted-foreground hover:bg-muted/50"
+                      }`}
+                    >
+                      <Smartphone size={16} /> GCash
+                    </button>
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                    {paymentMethod === "card" ? (
+                      <motion.div
+                        key="card"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-4"
+                      >
                         <div>
-                          <label className="text-xs font-bold text-muted-foreground">Expiry Date</label>
+                          <label className="text-xs font-bold text-muted-foreground">Card Number</label>
                           <input 
                             type="text" 
-                            placeholder="MM/YY" 
+                            placeholder="0000 0000 0000 0000" 
                             required
-                            value={expiry}
-                            onChange={e => setExpiry(e.target.value)}
+                            value={cardNumber}
+                            onChange={e => setCardNumber(e.target.value)}
                             className="w-full mt-1.5 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" 
                           />
                         </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-bold text-muted-foreground">Expiry Date</label>
+                            <input 
+                              type="text" 
+                              placeholder="MM/YY" 
+                              required
+                              value={expiry}
+                              onChange={e => setExpiry(e.target.value)}
+                              className="w-full mt-1.5 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" 
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-muted-foreground">CVC</label>
+                            <input 
+                              type="text" 
+                              placeholder="123" 
+                              required
+                              value={cvc}
+                              onChange={e => setCvc(e.target.value)}
+                              className="w-full mt-1.5 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" 
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="gcash"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-4"
+                      >
                         <div>
-                          <label className="text-xs font-bold text-muted-foreground">CVC</label>
+                          <label className="text-xs font-bold text-muted-foreground">GCash Mobile Number</label>
                           <input 
                             type="text" 
-                            placeholder="123" 
+                            placeholder="0917 000 0000" 
                             required
-                            value={cvc}
-                            onChange={e => setCvc(e.target.value)}
-                            className="w-full mt-1.5 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary" 
+                            value={gcashNumber}
+                            onChange={e => setGcashNumber(e.target.value)}
+                            className="w-full mt-1.5 rounded-xl border border-blue-200 bg-background px-4 py-2.5 text-sm outline-none focus:border-blue-500" 
                           />
                         </div>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="gcash"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="space-y-4"
-                    >
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">GCash Mobile Number</label>
-                        <input 
-                          type="text" 
-                          placeholder="0917 000 0000" 
-                          required
-                          value={gcashNumber}
-                          onChange={e => setGcashNumber(e.target.value)}
-                          className="w-full mt-1.5 rounded-xl border border-blue-200 bg-background px-4 py-2.5 text-sm outline-none focus:border-blue-500" 
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        You will receive an SMS prompt to authorize this payment after clicking submit.
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                        <p className="text-xs text-muted-foreground">
+                          You will receive an SMS prompt to authorize this payment after clicking submit.
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-xs flex gap-2 items-start text-left">
-                  <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                  <p><strong>Non-Refundable Policy:</strong> By proceeding, you acknowledge that all rent payments and deposits are strictly non-refundable.</p>
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-xs flex gap-2 items-start text-left">
+                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                    <p><strong>Non-Refundable Policy:</strong> By proceeding, you acknowledge that all rent payments and deposits are strictly non-refundable.</p>
+                  </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting || isFull || alreadyApplied}
-                  className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {alreadyApplied ? "Already Applied" : isFull ? "Room is Full" : isSubmitting ? "Processing..." : `Pay ₱${(room.price || 0).toLocaleString()} & Apply`}
-                </button>
-                <p className="text-center text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-                  <CreditCard size={10} /> Payments are secure and encrypted.
-                </p>
+                <div className="shrink-0 pt-4 border-t border-border mt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || isFull || alreadyApplied}
+                    className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition hover:bg-[#173f39] disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {alreadyApplied ? "Already Applied" : isFull ? "Room is Full" : isSubmitting ? "Processing..." : `Pay ₱${(room.price || 0).toLocaleString()} & Apply`}
+                  </button>
+                  <p className="mt-3 text-center text-[10px] text-muted-foreground flex items-center justify-center gap-1">
+                    <CreditCard size={10} /> Payments are secure and encrypted.
+                  </p>
+                </div>
               </form>
             </div>
           </motion.div>

@@ -30,9 +30,9 @@ export default function MockPaymentGateway({ amount, description, onSuccess, onC
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-border bg-card shadow-2xl"
+        className="w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
       >
-        <div className="relative border-b border-border bg-muted/30 px-6 py-5">
+        <div className="relative shrink-0 border-b border-border bg-muted/30 px-6 py-5">
           <button 
             onClick={onCancel}
             disabled={step === "processing"}
@@ -45,7 +45,7 @@ export default function MockPaymentGateway({ amount, description, onSuccess, onC
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
 
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col">
           <AnimatePresence mode="wait">
             {step === "select" && (
               <motion.div
@@ -53,43 +53,45 @@ export default function MockPaymentGateway({ amount, description, onSuccess, onC
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="space-y-4"
+                className="flex flex-col flex-1"
               >
-                <p className="text-sm font-semibold">Select Payment Method</p>
-                
-                <div className="grid gap-3">
-                  <button
-                    onClick={() => setMethod("gcash")}
-                    className={`flex items-center gap-4 rounded-2xl border p-4 transition-all ${
-                      method === "gcash" ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500" : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <div className="grid size-10 place-items-center rounded-full bg-blue-500 text-white">
-                      <Smartphone size={18} />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold">E-Wallet (GCash / Maya)</p>
-                      <p className="text-xs text-muted-foreground">Pay instantly using your mobile wallet</p>
-                    </div>
-                  </button>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold mb-4">Select Payment Method</p>
+                  
+                  <div className="grid gap-3">
+                    <button
+                      onClick={() => setMethod("gcash")}
+                      className={`flex items-center gap-4 rounded-2xl border p-4 transition-all ${
+                        method === "gcash" ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500" : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="grid size-10 place-items-center rounded-full bg-blue-500 text-white">
+                        <Smartphone size={18} />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold">E-Wallet (GCash / Maya)</p>
+                        <p className="text-xs text-muted-foreground">Pay instantly using your mobile wallet</p>
+                      </div>
+                    </button>
 
-                  <button
-                    onClick={() => setMethod("card")}
-                    className={`flex items-center gap-4 rounded-2xl border p-4 transition-all ${
-                      method === "card" ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <div className="grid size-10 place-items-center rounded-full bg-primary text-primary-foreground">
-                      <CreditCard size={18} />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold">Credit / Debit Card</p>
-                      <p className="text-xs text-muted-foreground">Visa, Mastercard, JCB</p>
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => setMethod("card")}
+                      className={`flex items-center gap-4 rounded-2xl border p-4 transition-all ${
+                        method === "card" ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="grid size-10 place-items-center rounded-full bg-primary text-primary-foreground">
+                        <CreditCard size={18} />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold">Credit / Debit Card</p>
+                        <p className="text-xs text-muted-foreground">Visa, Mastercard, JCB</p>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="pt-4">
+                <div className="shrink-0 pt-4 mt-6 border-t border-border">
                   <button
                     onClick={handlePay}
                     disabled={!method}

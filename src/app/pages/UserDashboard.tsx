@@ -521,17 +521,21 @@ function OverviewSection({ userName, tenant, room, onNavigate }: { userName: str
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl"
+              className="w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
             >
-              <h3 className="font-['Libre_Baskerville'] text-xl font-bold mb-2">Leave Room</h3>
-              <p className="mb-4 text-sm text-muted-foreground">Please provide a reason. Your request will be sent to the administration and your room assignment will be released.</p>
-              <textarea
-                value={leaveReason}
-                onChange={(e) => setLeaveReason(e.target.value)}
-                placeholder="Reason for leaving..."
-                className="mb-4 h-32 w-full resize-none rounded-xl border border-border bg-background p-4 text-sm outline-none focus:border-red-500"
-              />
-              <div className="flex justify-end gap-3">
+              <div className="shrink-0 p-6 pb-2">
+                <h3 className="font-['Libre_Baskerville'] text-xl font-bold mb-2">Leave Room</h3>
+                <p className="mb-2 text-sm text-muted-foreground">Please provide a reason. Your request will be sent to the administration and your room assignment will be released.</p>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6">
+                <textarea
+                  value={leaveReason}
+                  onChange={(e) => setLeaveReason(e.target.value)}
+                  placeholder="Reason for leaving..."
+                  className="mb-2 h-32 w-full resize-none rounded-xl border border-border bg-background p-4 text-sm outline-none focus:border-red-500"
+                />
+              </div>
+              <div className="shrink-0 flex justify-end gap-3 p-6 pt-2">
                 <button
                   onClick={() => setIsLeaving(false)}
                   disabled={leavingSubmit}
@@ -1529,19 +1533,22 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl bg-background p-6 shadow-2xl relative"
+              className="w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden rounded-3xl bg-background shadow-2xl relative"
             >
-              <button 
-                onClick={() => setSelectedPass(null)}
-                className="absolute right-4 top-4 rounded-full bg-muted p-2 hover:bg-muted/80 transition"
-              >
-                <X size={16} />
-              </button>
-
-              <div className="text-center mb-6 mt-4">
-                <h3 className="font-['Libre_Baskerville'] text-2xl font-bold mb-1">Gate Pass</h3>
-                <p className="text-sm text-muted-foreground">Show this at the entrance</p>
+              <div className="shrink-0 flex justify-end p-4 pb-0 z-10 relative">
+                <button 
+                  onClick={() => setSelectedPass(null)}
+                  className="rounded-full bg-muted p-2 hover:bg-muted/80 transition"
+                >
+                  <X size={16} />
+                </button>
               </div>
+
+              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-0">
+                <div className="text-center mb-6">
+                  <h3 className="font-['Libre_Baskerville'] text-2xl font-bold mb-1">Gate Pass</h3>
+                  <p className="text-sm text-muted-foreground">Show this at the entrance</p>
+                </div>
 
               <div className="bg-card border border-border rounded-2xl p-6 flex flex-col items-center justify-center mb-6">
                 <div className="bg-white p-4 rounded-xl shadow-inner mb-4">
