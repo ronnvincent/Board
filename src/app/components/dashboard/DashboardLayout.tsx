@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ChevronLeft,
@@ -13,6 +13,7 @@ import { useAuth } from "../../context/AuthContext";
 import RoleBadge from "./RoleBadge";
 import type { UserRole } from "../../types/auth";
 import { useRealtimeData } from "../../hooks/useRealtimeData";
+import HouseLoading from "../shared/HouseLoading";
 
 export interface NavItem {
   label: string;
@@ -38,6 +39,20 @@ export default function DashboardLayout({
   const { user, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isTabSettling, setIsTabSettling] = useState(false);
+  const hasMounted = useRef(false);
+  const { data: profiles } = useRealtimeData("profiles");
+
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
+    }
+
+    setIsTabSettling(true);
+    const settleTimer = window.setTimeout(() => setIsTabSettling(false), 420);
+    return () => window.clearTimeout(settleTimer);
+  }, [activeNav]);
 
   if (!user) return null;
 
@@ -55,11 +70,12 @@ export default function DashboardLayout({
   const activeIsPrimaryMobile = primaryMobileItems.some((item) => item.id === activeNav);
 
   const handleMobileNavChange = (id: string) => {
-    onNavChange(id);
+    if (id !== activeNav) {
+      onNavChange(id);
+    }
     setMobileOpen(false);
   };
 
-  const { data: profiles } = useRealtimeData("profiles");
   const currentProfile = profiles.find((p: any) => p.id === user?.id);
   
   let localAvatar = null;
@@ -271,8 +287,37 @@ export default function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="dashboard-main flex-1 overflow-y-auto overflow-x-hidden p-3 pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(5.75rem+env(safe-area-inset-bottom))] lg:p-8 lg:pb-8">
-          {children}
+        <main className="dashboard-main relative flex-1 overflow-y-auto overflow-x-hidden p-3 pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(5.75rem+env(safe-area-inset-bottom))] lg:p-8 lg:pb-8">
+          <AnimatePresence>
+            {isTabSettling && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                transition={{ duration: 0.18 }}
+                className="pointer-events-none fixed inset-x-3 top-20 z-20 flex justify-center sm:absolute sm:inset-x-auto sm:right-4 sm:top-4"
+              >
+                <HouseLoading
+                  variant="overlay"
+                  size="sm"
+                  label={`Moving to ${pageTitle}...`}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeNav}
+              initial={{ opacity: 0, y: 10, filter: "blur(3px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -8, filter: "blur(2px)" }}
+              transition={{ duration: 0.24, ease: "easeOut" }}
+              className="min-h-full"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
 
         {/* ── Mobile bottom tabs ── */}

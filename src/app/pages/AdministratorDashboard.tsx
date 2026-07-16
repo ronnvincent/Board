@@ -37,6 +37,7 @@ import {
 import { useEffect } from "react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
+import HouseLoading from "../components/shared/HouseLoading";
 import { useAuth } from "../context/AuthContext";
 import RoleBadge from "../components/dashboard/RoleBadge";
 
@@ -466,7 +467,7 @@ function AdminsSection() {
       </div>
       
       {loadingAdmins ? (
-        <p className="text-sm text-muted-foreground">Loading admins...</p>
+        <HouseLoading size="sm" label="Loading admins..." className="rounded-2xl border border-border bg-card" />
       ) : admins.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center">
           <p className="text-sm font-medium text-foreground">No admins exist yet.</p>
@@ -644,7 +645,7 @@ function HousesSection() {
       </div>
 
       {loadingHouses ? (
-        <p className="text-sm text-muted-foreground">Loading houses...</p>
+        <HouseLoading size="sm" label="Loading houses..." className="rounded-2xl border border-border bg-card" />
       ) : houses.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center">
           <p className="text-sm font-medium text-foreground">No houses exist yet.</p>
@@ -1280,7 +1281,7 @@ function UsersSection() {
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Loading users...</td></tr>
+                <tr><td colSpan={4} className="p-6"><HouseLoading size="sm" label="Loading users..." className="py-2" /></td></tr>
               ) : profiles.length === 0 ? (
                 <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No users found.</td></tr>
               ) : (
@@ -2146,7 +2147,7 @@ function MaintenanceSection() {
     setUpdating(null);
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading maintenance requests...</div>;
+  if (loading) return <HouseLoading size="md" label="Loading maintenance requests..." className="min-h-[18rem]" />;
 
   return (
     <div className="space-y-6">

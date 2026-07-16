@@ -72,6 +72,124 @@
   }
 }
 
+/* Cute moving-house loader */
+@keyframes house-road-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-2rem); }
+}
+
+.house-loading-scene {
+  position: relative;
+  height: 5.5rem;
+  max-width: 100%;
+  color: var(--primary);
+}
+
+.house-loading-cloud {
+  position: absolute;
+  top: 0.4rem;
+  width: 2.2rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 84%, transparent);
+}
+
+.house-loading-cloud::before,
+.house-loading-cloud::after {
+  content: "";
+  position: absolute;
+  bottom: 0.25rem;
+  border-radius: 999px;
+  background: inherit;
+}
+
+.house-loading-cloud::before {
+  left: 0.35rem;
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.house-loading-cloud::after {
+  right: 0.35rem;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.house-loading-cloud-one {
+  left: 8%;
+}
+
+.house-loading-cloud-two {
+  right: 10%;
+  top: 1.2rem;
+  transform: scale(0.82);
+}
+
+.house-loading-home {
+  position: absolute;
+  left: 0;
+  bottom: 0.85rem;
+  width: 3.9rem;
+  filter: drop-shadow(0 0.75rem 0.9rem rgb(0 0 0 / 0.12));
+  will-change: transform;
+}
+
+.house-loading-home-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.house-loading-roof {
+  fill: currentColor;
+}
+
+.house-loading-body {
+  fill: var(--card);
+  stroke: currentColor;
+  stroke-width: 3;
+}
+
+.house-loading-door {
+  fill: color-mix(in srgb, currentColor 20%, var(--card));
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.house-loading-knob,
+.house-loading-heart {
+  fill: currentColor;
+}
+
+.house-loading-window {
+  fill: color-mix(in srgb, var(--primary) 12%, var(--background));
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.house-loading-road {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0.25rem;
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+
+.house-loading-road span {
+  display: block;
+  width: calc(100% + 4rem);
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--primary) 52%, transparent) 0 0.8rem,
+    transparent 0.8rem 1.6rem
+  );
+  animation: house-road-drift 0.9s linear infinite;
+}
+
 /* ═══════════════════════════════════════════
    Mobile comfort layer
    Keeps desktop layouts intact while making dashboard content easier to use on phones.
@@ -190,5 +308,10 @@ body {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .house-loading-home {
+    left: 50%;
+    transform: translateX(-50%);
   }
 }

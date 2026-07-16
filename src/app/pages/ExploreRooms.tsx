@@ -6,6 +6,7 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import RoutingMachine from "../components/map/RoutingMachine";
 import { useAuth } from "../context/AuthContext";
 import CheckoutModal from "../components/rooms/CheckoutModal";
+import HouseLoading from "../components/shared/HouseLoading";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -375,7 +376,7 @@ export default function ExploreRooms() {
 
       {/* Main Content */}
       {roomsLoading ? (
-        <div className="py-20 text-center text-muted-foreground">Loading...</div>
+        <HouseLoading size="md" label="Loading available rooms..." className="py-20" />
       ) : selectedHouse === "all" ? (
         // SHOW LOCATIONS VIEW — show ALL houses, not just ones with vacant rooms
         houses.length === 0 ? (

@@ -39,6 +39,7 @@ import { useRealtimeData } from "../hooks/useRealtimeData";
 import { supabase } from "../../lib/supabase";
 import ExploreRooms, { LocationMapModal } from "./ExploreRooms";
 import MockPaymentGateway from "../components/shared/MockPaymentGateway";
+import HouseLoading from "../components/shared/HouseLoading";
 import { QRCodeSVG } from "qrcode.react";
 import EmojiPicker from 'emoji-picker-react';
 import { compressImageToBase64 } from "../../lib/imageUtils";
@@ -86,6 +87,15 @@ export default function UserDashboard() {
       onNavChange={setActiveNav}
       pageTitle={navItems.find((n) => n.id === activeNav)?.label ?? "Dashboard"}
     >
+      {tenantsLoading && !myTenant && (
+        <HouseLoading
+          size="md"
+          label="Finding your room..."
+          subLabel="Checking your boarding house assignment."
+          className="min-h-[55vh]"
+        />
+      )}
+
       {!myTenant && !tenantsLoading && activeNav === "dashboard" && (
         <div className="-mt-8">
           <ExploreRooms />
@@ -1018,7 +1028,7 @@ function MaintenanceSectionV2({
         </div>
         
         {loading ? (
-          <div className="px-5 py-8 text-center text-sm text-muted-foreground">Loading requests...</div>
+          <HouseLoading size="sm" label="Loading requests..." className="py-8" />
         ) : myRequests.length === 0 ? (
           <div className="px-5 py-12 text-center text-sm text-muted-foreground">You have no maintenance requests.</div>
         ) : (
@@ -1172,7 +1182,7 @@ function MaintenanceSection({ room, tenant }: { room: any, tenant: any }) {
         </div>
         
         {loading ? (
-          <div className="px-5 py-8 text-center text-sm text-muted-foreground">Loading requests...</div>
+          <HouseLoading size="sm" label="Loading requests..." className="py-8" />
         ) : myRequests.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-muted-foreground">You have no maintenance requests.</div>
         ) : (

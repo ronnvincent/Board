@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useAuth } from "../../context/AuthContext";
 import type { UserRole } from "../../types/auth";
-import { Loader2 } from "lucide-react";
+import HouseLoading from "../shared/HouseLoading";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -22,15 +22,15 @@ export default function ProtectedRoute({
     }
   }, [isLoading, isAuthenticated, user, onRedirectToLogin]);
 
-  // Show loading spinner while auth state is resolving
+  // Show a friendly loading state while auth state is resolving.
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 size={32} className="animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground font-['DM_Sans']">Loading…</p>
-        </div>
-      </div>
+      <HouseLoading
+        variant="page"
+        size="lg"
+        label="Opening your house..."
+        subLabel="Getting your dashboard ready."
+      />
     );
   }
 

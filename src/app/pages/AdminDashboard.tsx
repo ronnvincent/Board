@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import DashboardLayout, { type NavItem } from "../components/dashboard/DashboardLayout";
 import StatCard from "../components/dashboard/StatCard";
+import HouseLoading from "../components/shared/HouseLoading";
 import { compressImageToBase64 } from "../../lib/imageUtils";
 
 const navItems: NavItem[] = [
@@ -126,7 +127,7 @@ function OverviewSection() {
             </div>
             
             {loadingRooms ? (
-              <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">Loading rooms...</div>
+              <HouseLoading size="sm" label="Loading rooms..." className="h-[200px]" />
             ) : rooms.length === 0 ? (
               <div className="h-[200px] flex flex-col items-center justify-center text-center">
                 <p className="text-sm text-muted-foreground">No rooms yet.</p>
@@ -485,7 +486,7 @@ function RoomsSection() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {loading ? "Loading rooms..." : `Manage all ${rooms.length} rooms in The Green House.`}
+          {loading ? "Checking room updates..." : `Manage all ${rooms.length} rooms in The Green House.`}
         </p>
         <button 
           onClick={openCreateModal}
@@ -496,12 +497,14 @@ function RoomsSection() {
         </button>
       </div>
       
-      {rooms.length === 0 && !loading && (
+      {loading ? (
+        <HouseLoading size="sm" label="Loading rooms..." className="rounded-2xl border border-border bg-card" />
+      ) : rooms.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center">
           <p className="text-sm font-medium text-foreground">No rooms exist yet.</p>
           <p className="text-xs text-muted-foreground mt-1">Click Add Room to create your first one.</p>
         </div>
-      )}
+      ) : null}
 
       {modalData && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
@@ -622,8 +625,9 @@ function RoomsSection() {
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {rooms.map((room, i) => (
+      {!loading && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {rooms.map((room, i) => (
           <motion.div
             key={room.id}
             initial={{ opacity: 0, y: 12 }}
@@ -669,8 +673,9 @@ function RoomsSection() {
               No tenant assigned
             </p>
           </motion.div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -758,7 +763,7 @@ function TenantsSection() {
       )}
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading tenants...</p>
+        <HouseLoading size="sm" label="Loading tenants..." className="rounded-2xl border border-border bg-card" />
       ) : tenants.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center">
           <p className="text-sm font-medium text-foreground">No tenants exist yet.</p>
@@ -882,7 +887,7 @@ function StaffSection() {
       )}
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading staff...</p>
+        <HouseLoading size="sm" label="Loading staff..." className="rounded-2xl border border-border bg-card" />
       ) : staff.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center">
           <p className="text-sm font-medium text-foreground">No staff members exist yet.</p>
@@ -1003,7 +1008,7 @@ function MaintenanceSection() {
       )}
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading maintenance requests...</p>
+        <HouseLoading size="sm" label="Loading maintenance requests..." className="rounded-2xl border border-border bg-card" />
       ) : maintenance.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center">
           <p className="text-sm font-medium text-foreground">No maintenance requests.</p>
