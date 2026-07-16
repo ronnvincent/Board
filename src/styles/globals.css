@@ -71,3 +71,124 @@
     transform: translateY(0);
   }
 }
+
+/* ═══════════════════════════════════════════
+   Mobile comfort layer
+   Keeps desktop layouts intact while making dashboard content easier to use on phones.
+   ═══════════════════════════════════════════ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-width: 320px;
+}
+
+.dashboard-shell button,
+.dashboard-shell a,
+.dashboard-shell input,
+.dashboard-shell select,
+.dashboard-shell textarea {
+  touch-action: manipulation;
+}
+
+.dashboard-main {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
+.dashboard-main > * {
+  max-width: 100%;
+}
+
+@media (max-width: 1023px) {
+  .dashboard-main {
+    background:
+      radial-gradient(circle at top left, rgba(31, 81, 73, 0.06), transparent 26rem),
+      var(--background);
+  }
+
+  .dashboard-main h1,
+  .dashboard-main h2,
+  .dashboard-main h3,
+  .dashboard-main p,
+  .dashboard-main span {
+    overflow-wrap: anywhere;
+  }
+
+  .dashboard-main input,
+  .dashboard-main select,
+  .dashboard-main textarea {
+    min-height: 2.75rem;
+    font-size: 16px;
+  }
+
+  .dashboard-main button {
+    min-height: 2.5rem;
+  }
+
+  .dashboard-mobile-nav button {
+    min-height: 3.25rem;
+  }
+
+  .dashboard-main table {
+    min-width: 42rem;
+  }
+
+  .dashboard-main th,
+  .dashboard-main td {
+    white-space: nowrap;
+  }
+
+  .dashboard-main .fixed.inset-0 {
+    align-items: flex-end;
+    padding: 0.75rem;
+  }
+
+  .dashboard-main .fixed.inset-0 > [class*="max-w-"] {
+    max-height: min(90dvh, 44rem);
+    width: 100%;
+    overflow-y: auto;
+    border-radius: 1.5rem 1.5rem 1rem 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-main {
+    font-size: 0.9375rem;
+  }
+
+  .dashboard-main .rounded-2xl,
+  .dashboard-main .rounded-3xl {
+    border-radius: 1.125rem;
+  }
+
+  .dashboard-main [class*="p-12"],
+  .dashboard-main [class*="p-10"] {
+    padding: 1.5rem;
+  }
+
+  .dashboard-main [class*="px-6"] {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .dashboard-main [class*="py-6"] {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -166,7 +166,7 @@ function OverviewSection() {
                   <div
                     key={house.id}
                     onClick={() => setSelectedHouseId(house.id)}
-                    className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition cursor-pointer">
+                    className="flex flex-col gap-3 px-4 py-4 transition hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3.5 cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                         <Building2 size={16} />
@@ -318,7 +318,7 @@ function OverviewSection() {
                                       const profile = profiles.find((p: any) => p.id === tenant.profile_id);
                                       const moveIn = tenant.created_at ? new Date(tenant.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
                                       return (
-                                        <div key={tenant.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition">
+                                        <div key={tenant.id} className="flex flex-col gap-3 px-4 py-3 transition hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between">
                                           <div className="flex items-center gap-3">
                                             {profile?.avatar_url ? (
                                               <img src={profile.avatar_url} alt="" className="size-9 rounded-full object-cover shrink-0" />
@@ -2355,7 +2355,7 @@ function SumbunganAdminSection() {
 
       <div
         data-chat={selectedUserId ? "true" : "false"}
-        className="flex min-w-0 rounded-2xl border border-border bg-card overflow-hidden h-[calc(100dvh-200px)] min-h-[320px] data-[chat=true]:h-[calc(100dvh-120px)] lg:data-[chat=true]:h-[calc(100dvh-200px)]"
+        className="flex min-w-0 rounded-2xl border border-border bg-card overflow-hidden h-[calc(100dvh-260px)] min-h-[320px] data-[chat=true]:h-[calc(100dvh-185px)] sm:h-[calc(100dvh-220px)] sm:data-[chat=true]:h-[calc(100dvh-145px)] lg:h-[calc(100dvh-200px)] lg:data-[chat=true]:h-[calc(100dvh-200px)]"
       >
         {/* User list — full width on mobile, sidebar on desktop */}
         <div

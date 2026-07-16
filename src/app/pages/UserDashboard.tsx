@@ -719,7 +719,7 @@ function RentSectionV2({ tenant }: { tenant: any }) {
           </div>
           <div className="divide-y divide-border">
             {myPayments.map((payment: any) => (
-              <div key={payment.id} className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-muted/30">
+              <div key={payment.id} className="flex flex-col gap-3 px-4 py-4 transition hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div className="flex items-center gap-3">
                   <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-600">
                     <ReceiptText size={18} />
@@ -823,7 +823,7 @@ function RentSection({ tenant }: { tenant: any }) {
         </div>
         <div className="divide-y divide-border">
           {myPayments.map((payment: any) => (
-            <div key={payment.id} className="flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition">
+            <div key={payment.id} className="flex flex-col gap-3 px-4 py-4 transition hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="flex items-center gap-3">
                 <div className="grid size-10 place-items-center rounded-xl bg-emerald-100 text-emerald-600 shrink-0">
                   <CreditCard size={18} />
@@ -1449,7 +1449,7 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
         </div>
         <div className="divide-y divide-border">
           {upcomingVisitors.map((v) => (
-            <div key={v.id} className="flex items-center justify-between px-5 py-4">
+            <div key={v.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div>
                 <p className="font-bold">{v.visitor_name}</p>
                 <p className="text-xs text-muted-foreground">{new Date(v.date_of_visit).toLocaleString()}</p>
@@ -1485,7 +1485,7 @@ function VisitorsSection({ profileId }: { profileId?: string }) {
         </div>
         <div className="divide-y divide-border">
           {historyVisitors.map((v) => (
-            <div key={v.id} className="flex items-center justify-between px-5 py-4 opacity-80 hover:opacity-100 transition">
+            <div key={v.id} className="flex flex-col gap-3 px-4 py-4 opacity-80 transition hover:opacity-100 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div>
                 <p className="font-bold">{v.visitor_name}</p>
                 <p className="text-xs text-muted-foreground">{new Date(v.date_of_visit).toLocaleString()}</p>
@@ -2420,7 +2420,7 @@ function SumbunganSection({ currentUserId }: { currentUserId?: string }) {
 
       <div
         data-chat={selectedAdminId ? "true" : "false"}
-        className="flex min-w-0 rounded-2xl border border-border bg-card overflow-hidden h-[calc(100dvh-200px)] min-h-[320px] data-[chat=true]:h-[calc(100dvh-120px)] lg:data-[chat=true]:h-[calc(100dvh-200px)]"
+        className="flex min-w-0 rounded-2xl border border-border bg-card overflow-hidden h-[calc(100dvh-260px)] min-h-[320px] data-[chat=true]:h-[calc(100dvh-185px)] sm:h-[calc(100dvh-220px)] sm:data-[chat=true]:h-[calc(100dvh-145px)] lg:h-[calc(100dvh-200px)] lg:data-[chat=true]:h-[calc(100dvh-200px)]"
       >
         {/* Admin list — full width on mobile, sidebar on desktop */}
         <div

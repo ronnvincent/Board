@@ -83,7 +83,7 @@ function OverviewSection() {
             {mockTasks
               .filter((t) => t.status !== "done")
               .map((task) => (
-                <div key={task.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/20 transition">
+                <div key={task.id} className="flex flex-col gap-3 px-4 py-4 transition hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3.5">
                   <div className="flex items-center gap-3">
                     <div className={`grid size-8 place-items-center rounded-lg ${
                       task.status === "in-progress" ? "bg-blue-100 text-blue-600" : "bg-amber-50 text-amber-600"
@@ -152,7 +152,7 @@ function TasksSection() {
       </div>
       <div className="rounded-2xl border border-border bg-card divide-y divide-border">
         {filtered.map((task) => (
-          <div key={task.id} className="flex items-center justify-between px-5 py-4 hover:bg-muted/20 transition">
+          <div key={task.id} className="flex flex-col gap-3 px-4 py-4 transition hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div className="flex items-center gap-4">
               <div className={`grid size-9 place-items-center rounded-xl ${
                 task.status === "done" ? "bg-emerald-100 text-emerald-600"
